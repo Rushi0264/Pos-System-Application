@@ -38,7 +38,7 @@ public class BranchServiceImpl implements BranchService {
     @Override
     public BranchDTO updateBranch(Long id, BranchDTO branchDTO) throws Exception {
         Branch existing = branchRepository.findById(id).orElseThrow(
-                ()-> new Exception("branch not found..")
+                ()-> new Exception("branch not exist..")
         );
 
         existing.setName(branchDTO.getName());
