@@ -1,6 +1,7 @@
 package com.example.pos.system.modal;
 
 import com.example.pos.system.domain.PaymentType;
+import com.example.pos.system.domain.RefundStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,6 +36,15 @@ public class Refund {
 
     @ManyToOne
     private Branch branch;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private RefundStatus status = RefundStatus.PENDING;
+
+    @ManyToOne
+    private User approvedBy;
+
+    private LocalDateTime approvedAt;
 
     private PaymentType paymentType;
 

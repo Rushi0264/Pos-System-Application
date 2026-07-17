@@ -12,6 +12,17 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Table(
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "unique_branch_product",
+                        columnNames = {
+                                "branch_id",
+                                "product_id"
+                        }
+                )
+        }
+)
 public class Inventory {
 
     @Id

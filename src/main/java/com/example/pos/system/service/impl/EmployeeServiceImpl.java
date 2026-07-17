@@ -59,18 +59,32 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public UserDto createBranchEmployee(UserDto employee, Long branchId) throws Exception {
 
-        Branch branch = branchRepository.findById(branchId).orElseThrow(
-                () -> new Exception("branch not found")
-        );
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new Exception("Branch not found"));
 
-        if (employee.getRole()==UserRole.ROLE_BRANCH_CASHIER ||
-            employee.getRole()==UserRole.ROLE_BRANCH_MANAGER){
+        if (employee.getRole() == UserRole.ROLE_BRANCH_CASHIER ||
+                employee.getRole() == UserRole.ROLE_BRANCH_MANAGER) {
 
             User user = UserMapper.toEntity(employee);
+
             user.setBranch(branch);
+
+            // ************* FIX *************
+            user.setStore(branch.getStore());
+            // *******************************
+
             user.setPassword(passwordEncoder.encode(employee.getPassword()));
-            return UserMapper.toDTO(userRepository.save(user));
+
+            User savedUser = userRepository.save(user);
+
+            if (employee.getRole() == UserRole.ROLE_BRANCH_MANAGER) {
+                branch.setManager(savedUser);
+                branchRepository.save(branch);
+            }
+
+            return UserMapper.toDTO(savedUser);
         }
+
         throw new Exception("Branch role not supported");
     }
 
@@ -80,15 +94,16 @@ public class EmployeeServiceImpl implements EmployeeService {
                 ()-> new Exception("employee not exist with given id")
         );
 
-        Branch branch = branchRepository.findById(employeeId).orElseThrow(
-                ()-> new Exception("branch not found.")
-        );
+        Branch branch = branchRepository.findById(employeeDetails.getBranchId())
+                .orElseThrow(() -> new Exception("Branch not found"));
 
+        existingEmployee.setBranch(branch);
+        existingEmployee.setStore(branch.getStore());
         existingEmployee.setEmail(employeeDetails.getEmail());
         existingEmployee.setFullName(employeeDetails.getFullName());
         existingEmployee.setPassword(employeeDetails.getPassword());
         existingEmployee.setRole(employeeDetails.getRole());
-        existingEmployee.setBranch(branch);
+
 
         return userRepository.save(existingEmployee);
     }

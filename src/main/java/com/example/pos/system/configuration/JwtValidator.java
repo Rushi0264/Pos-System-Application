@@ -1,39 +1,67 @@
 package com.example.pos.system.configuration;
 
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.BadCredentialsException;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
+@Component
 public class JwtValidator extends OncePerRequestFilter {
+
+
+    SecretKey key = Keys.hmacShaKeyFor(
+            JwtConstant.JWT_SECRET.getBytes()
+    );
+
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    )
+            throws ServletException, IOException {
 
-        String jwt = request.getHeader(JwtConstant.JWT_HEADER);
 
-        if (jwt != null){
-            jwt=jwt.substring(7);
+        String jwt = request.getHeader("Authorization");
+
+        System.out.println("========== JWT DEBUG ==========");
+        System.out.println("AUTH HEADER : " + jwt);
+
+
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            System.out.println(
+                    SecurityContextHolder.getContext()
+                            .getAuthentication()
+                            .getAuthorities()
+            );
+        } else {
+            System.out.println("Authentication is null");
+        }
+
+
+        if(jwt != null && jwt.startsWith("Bearer ")) {
+
+
+            jwt = jwt.substring(7);
+
 
             try {
-                SecretKey key = Keys.hmacShaKeyFor(JwtConstant.JWT_SECRET.getBytes());
 
                 Claims claims = Jwts.parser()
                         .verifyWith(key)
@@ -41,23 +69,70 @@ public class JwtValidator extends OncePerRequestFilter {
                         .parseSignedClaims(jwt)
                         .getPayload();
 
-                String email = String.valueOf(claims.get("email"));
-                String authorities = String.valueOf(claims.get("authorities"));
 
-                List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList(
-                        authorities
+                String email = claims.get("email", String.class);
+
+
+                Object authoritiesObj = claims.get("authorities");
+
+                String authorities = "";
+
+                if(authoritiesObj != null){
+                    authorities = authoritiesObj.toString();
+                }
+
+
+                List<SimpleGrantedAuthority> authList =
+                        Arrays.stream(authorities.split(","))
+                                .map(String::trim)
+                                .filter(role -> !role.isEmpty())
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
+                System.out.println("JWT AUTHORITIES FROM TOKEN = " + authList);
+
+
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                email,
+                                null,
+                                authList
+                        );
+
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
+                System.out.println(SecurityContextHolder.getContext().getAuthentication());
+
+
+                System.out.println(
+                        "USER : " + email
                 );
 
-                Authentication auth = new UsernamePasswordAuthenticationToken(
-                        email, null, auths);
+                System.out.println(
+                        "AUTHORITIES : " + authList
+                );
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (Exception e) {
-                throw new BadCredentialsException("Invalid JWT..."+e.getMessage());
+            } catch(Exception e){
+
+                System.out.println("JWT ERROR : "+e.getMessage());
+
             }
 
         }
 
+
+        System.out.println("REQUEST : " + request.getMethod() + " " + request.getRequestURI());
+        System.out.println("AUTH : " + SecurityContextHolder.getContext().getAuthentication());
+
         filterChain.doFilter(request,response);
+    }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getServletPath();
+
+        return path.startsWith("/uploads/");
     }
 }

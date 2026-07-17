@@ -1,5 +1,9 @@
 package com.example.pos.system.domain;
 
 public enum OrderStatus {
-    PENDING, COMPLETED
+    CREATED,
+    CONFIRMED,
+    COMPLETED,
+    CANCELLED,
+    RETURNED
 }

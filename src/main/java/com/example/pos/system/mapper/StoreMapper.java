@@ -1,38 +1,59 @@
 package com.example.pos.system.mapper;
 
+
 import com.example.pos.system.modal.Store;
-import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.StoreDTO;
+
+
 
 public class StoreMapper {
 
-    public static StoreDTO toDTO(Store store) {
-        StoreDTO storeDTO = new StoreDTO();
-        storeDTO.setId(store.getId());
-        storeDTO.setBrand(store.getBrand());
-        storeDTO.setDescription(store.getDescription());
-        storeDTO.setStoreAdmin(UserMapper.toDTO(store.getStoreAdmin()));
-        storeDTO.setStoreType(store.getStoreType());
-        storeDTO.setContact(store.getContact());
-        storeDTO.setCreatedAt(store.getCreatedAt());
-        storeDTO.setUpdatedAt(store.getUpdatedAt());
-        storeDTO.setStatus(store.getStatus());
 
-        return storeDTO;
+
+    public static StoreDTO toDTO(Store store){
+
+
+        StoreDTO dto=new StoreDTO();
+
+
+        dto.setId(store.getId());
+
+        dto.setBrand(store.getBrand());
+
+        dto.setDescription(store.getDescription());
+
+        dto.setStoreType(store.getStoreType());
+
+        dto.setStatus(store.getStatus());
+
+        dto.setContact(store.getContact());
+
+
+        return dto;
+
     }
 
-    public static Store toEntity(StoreDTO storeDTO, User storeAdmin) {
 
-        Store store = new Store();
-        store.setId(storeDTO.getId());
-        store.setBrand(storeDTO.getBrand());
-        store.setDescription(storeDTO.getDescription());
-        store.setStoreAdmin(storeAdmin);
-        store.setStoreType(storeDTO.getStoreType());
-        store.setContact(storeDTO.getContact());
-        store.setCreatedAt(storeDTO.getCreatedAt());
-        store.setUpdatedAt(storeDTO.getUpdatedAt());
+
+    public static Store toEntity(StoreDTO dto){
+
+
+        Store store=new Store();
+
+
+        store.setBrand(dto.getBrand());
+
+        store.setDescription(dto.getDescription());
+
+        store.setStoreType(dto.getStoreType());
+
+        store.setContact(dto.getContact());
+
 
         return store;
+
+
     }
+
+
 }

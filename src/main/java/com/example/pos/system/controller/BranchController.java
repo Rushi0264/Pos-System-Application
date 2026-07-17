@@ -1,9 +1,11 @@
 package com.example.pos.system.controller;
 
 import com.example.pos.system.exception.UserException;
+import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.BranchDTO;
 import com.example.pos.system.payload.response.ApiResponse;
 import com.example.pos.system.service.BranchService;
+import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,7 @@ import java.util.List;
 @RequestMapping("/api/branches")
 public class BranchController {
     private final BranchService branchService;
+    private final UserService userService;
 
     @PostMapping
     public ResponseEntity<BranchDTO> createBranch(
@@ -26,18 +29,28 @@ public class BranchController {
 
     @GetMapping("/{id}")
     public ResponseEntity<BranchDTO> getBranchById(
-            @PathVariable Long id
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String jwt
     ) throws Exception {
-        BranchDTO createdBranch = branchService.getBranchById(id);
-        return ResponseEntity.ok(createdBranch);
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                branchService.getBranchById(id, user)
+        );
     }
 
     @GetMapping("/store/{storeId}")
     public ResponseEntity<List<BranchDTO>> getAllBranchesByStoreId(
-            @PathVariable Long storeId
+            @PathVariable Long storeId,
+            @RequestHeader("Authorization") String jwt
     ) throws Exception {
-        List<BranchDTO> createdBranch = branchService.getAllBranchesByStoreId(storeId);
-        return ResponseEntity.ok(createdBranch);
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                branchService.getAllBranchesByStoreId(storeId, user)
+        );
     }
 
     @PutMapping("/{id}")
@@ -57,5 +70,17 @@ public class BranchController {
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setMessage("branch deleted successfully");
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BranchDTO>> getAllBranches(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                branchService.getAllBranches(user)
+        );
     }
 }

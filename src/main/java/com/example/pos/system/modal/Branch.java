@@ -1,5 +1,7 @@
 package com.example.pos.system.modal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,6 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonIgnoreProperties({
+        "hibernateLazyInitializer",
+        "handler"
+})
 public class Branch {
 
     @Id
@@ -37,9 +43,12 @@ public class Branch {
     private LocalDateTime updatedAt;
 
     @ManyToOne
+    @JoinColumn(name = "store_id")
+    @JsonIgnore
     private Store store;
 
     @OneToOne(cascade = CascadeType.REMOVE)
+    @JsonIgnore
     private User manager;
 
     @PrePersist

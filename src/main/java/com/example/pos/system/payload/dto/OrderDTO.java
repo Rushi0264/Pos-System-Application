@@ -1,20 +1,18 @@
 package com.example.pos.system.payload.dto;
 
+import com.example.pos.system.domain.OrderStatus;
+import com.example.pos.system.domain.PaymentStatus;
 import com.example.pos.system.domain.PaymentType;
-import com.example.pos.system.modal.Branch;
-import com.example.pos.system.modal.Customer;
-import com.example.pos.system.modal.OrderItem;
-import com.example.pos.system.modal.User;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
 @Builder
 public class OrderDTO {
@@ -25,16 +23,31 @@ public class OrderDTO {
 
     private LocalDateTime createdAt;
 
+    private String customerName;
+
+    private String customerPhone;
+
     private Long branchId;
+
     private Long customerId;
 
     private BranchDTO branch;
 
+    private Double subtotal;
+
+    private Double discountAmount;
+
+    private Double taxAmount;
+
     private UserDto cashier;
 
-    private Customer customer;
+    private Long cashierId;
 
     private PaymentType paymentType;
+
+    private OrderStatus status;
+
+    private CustomerDTO customer;
 
     private List<OrderItemDTO> items;
 

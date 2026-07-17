@@ -27,7 +27,7 @@ public class ShiftReportController {
     @PatchMapping("/end")
     public ResponseEntity<ShiftReportDTO> endShift() throws Exception{
         return ResponseEntity.ok(
-                shiftReportService.endShift(null,null)
+                shiftReportService.endShift(null, LocalDateTime.now())
         );
     }
 
