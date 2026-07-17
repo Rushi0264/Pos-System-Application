@@ -1,5 +1,6 @@
 package com.example.pos.system.service.impl;
 
+import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.BranchMapper;
 import com.example.pos.system.modal.Branch;
@@ -27,19 +28,90 @@ public class BranchServiceImpl implements BranchService {
 
     @Override
     public BranchDTO createBranch(BranchDTO branchDTO) throws UserException {
+
         User currentUser = userService.getCurrentUser();
-        Store store = storeRepository.findByStoreAdminId(currentUser.getId());
+
+        Store store = storeRepository.findById(branchDTO.getStoreId())
+                .orElseThrow(() ->
+                        new UserException("Store not found"));
+
+        // Store isolation
+        if (currentUser.getStore() != null &&
+                !currentUser.getStore().getId().equals(store.getId())) {
+
+            throw new UserException("You cannot create branch for another store");
+        }
 
         Branch branch = BranchMapper.toEntity(branchDTO, store);
+
         Branch savedBranch = branchRepository.save(branch);
+
         return BranchMapper.toDTO(savedBranch);
     }
 
     @Override
-    public BranchDTO updateBranch(Long id, BranchDTO branchDTO) throws Exception {
-        Branch existing = branchRepository.findById(id).orElseThrow(
-                ()-> new Exception("branch not exist..")
-        );
+    public List<BranchDTO> getBranchesByStore(
+            Long storeId
+    ) throws Exception {
+
+
+        User user = userService.getCurrentUser();
+
+
+        if(user.getRole()!= UserRole.ROLE_SUPER_ADMIN){
+
+            if(user.getStore()==null ||
+                    !user.getStore().getId().equals(storeId)){
+
+                throw new UserException(
+                        "You cannot access another store branches"
+                );
+            }
+        }
+
+
+        return branchRepository
+                .findByStoreId(storeId)
+                .stream()
+                .map(BranchMapper::toDTO)
+                .toList();
+
+    }
+
+    @Override
+    public BranchDTO updateBranch(
+            Long id,
+            BranchDTO branchDTO
+    ) throws Exception {
+
+        User currentUser = userService.getCurrentUser();
+
+        Branch existing = branchRepository.findById(id)
+                .orElseThrow(() ->
+                        new Exception("Branch not found"));
+
+        // Branch belongs to logged-in store?
+        if (currentUser.getStore() != null &&
+                !existing.getStore().getId().equals(currentUser.getStore().getId())) {
+
+            throw new UserException("You cannot update another store's branch");
+        }
+
+        if (branchDTO.getStoreId() != null) {
+
+            Store store = storeRepository.findById(branchDTO.getStoreId())
+                    .orElseThrow(() ->
+                            new Exception("Store not found"));
+
+            // Prevent changing to another store
+            if (currentUser.getStore() != null &&
+                    !currentUser.getStore().getId().equals(store.getId())) {
+
+                throw new UserException("You cannot move branch to another store");
+            }
+
+            existing.setStore(store);
+        }
 
         existing.setName(branchDTO.getName());
         existing.setWorkingDays(branchDTO.getWorkingDays());
@@ -51,29 +123,118 @@ public class BranchServiceImpl implements BranchService {
         existing.setUpdatedAt(LocalDateTime.now());
 
         Branch updatedBranch = branchRepository.save(existing);
+
         return BranchMapper.toDTO(updatedBranch);
     }
 
     @Override
     public void deleteBranch(Long id) throws Exception {
         Branch existing = branchRepository.findById(id).orElseThrow(
-                ()-> new Exception("branch not found..")
+                () -> new Exception("branch not found..")
         );
         branchRepository.delete(existing);
     }
 
-    @Override
+/*    @Override
     public List<BranchDTO> getAllBranchesByStoreId(Long storeId) {
         List<Branch> branches = branchRepository.findByStoreId(storeId);
         return branches.stream().map(BranchMapper::toDTO)
                 .collect(Collectors.toList());
-    }
+    }*/
 
     @Override
     public BranchDTO getBranchById(Long id) throws Exception {
         Branch existing = branchRepository.findById(id).orElseThrow(
-                ()-> new Exception("branch not found..")
+                () -> new Exception("branch not found..")
         );
         return BranchMapper.toDTO(existing);
+    }
+
+    @Override
+    public List<BranchDTO> getAllBranches() {
+        return branchRepository.findAll()
+                .stream()
+                .map(BranchMapper::toDTO)
+                .toList();
+    }
+    @Override
+    public List<BranchDTO> getAllBranchesByStoreId(Long storeId, User user) throws Exception {
+
+
+        if(user.getRole().name().equals("BRANCH_MANAGER")) {
+
+            if(user.getBranch() == null) {
+                throw new UserException(
+                        "Branch manager is not assigned to branch"
+                );
+            }
+
+
+            Long userStoreId =
+                    user.getBranch()
+                            .getStore()
+                            .getId();
+
+
+            if(!userStoreId.equals(storeId)) {
+                throw new UserException(
+                        "You cannot access another store branches"
+                );
+            }
+        }
+
+
+        if(user.getStore() != null) {
+
+            if(!user.getStore().getId().equals(storeId)) {
+                throw new UserException(
+                        "You cannot access another store branches"
+                );
+            }
+        }
+
+
+        return branchRepository.findByStoreId(storeId)
+                .stream()
+                .map(BranchMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public BranchDTO getBranchById(Long id, User user) throws Exception {
+
+        Branch branch = branchRepository.findById(id)
+                .orElseThrow(() -> new Exception("Branch not found"));
+
+
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            return BranchMapper.toDTO(branch);
+        }
+
+        if (user.getStore() == null) {
+            throw new UserException("User is not assigned to any store");
+        }
+
+        if (!branch.getStore().getId().equals(user.getStore().getId())) {
+            throw new UserException("Access Denied");
+        }
+
+        return BranchMapper.toDTO(branch);
+    }
+    @Override
+    public List<BranchDTO> getAllBranches(User user) throws Exception {
+
+        if (user.getStore() == null) {
+
+            return branchRepository.findAll()
+                    .stream()
+                    .map(BranchMapper::toDTO)
+                    .toList();
+        }
+
+        return branchRepository.findByStoreId(user.getStore().getId())
+                .stream()
+                .map(BranchMapper::toDTO)
+                .toList();
     }
 }

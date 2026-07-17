@@ -9,8 +9,9 @@ import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    List<Product> findByStoreId(Long storeId);
+    boolean existsBySku(String sku);
 
+    List<Product> findByStoreId(Long storeId);
 
     @Query("SELECT p FROM Product p "+
                         "WHERE p.store.id = :storeId AND ("+
@@ -21,4 +22,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     )
     List<Product> searchByKeyword(@Param("storeId") Long storeId,
                                   @Param("query") String keyword);
+
 }

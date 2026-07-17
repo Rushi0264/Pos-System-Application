@@ -45,13 +45,21 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryDTO> getCategoriesByStore(Long storeId) {
-        List<Category> categories = categoryRepository.findByStoreId(storeId);
+    public List<CategoryDTO> getCategoriesByStore(Long storeId, User user) throws Exception {
 
-        return categories.stream()
-                .map(
-                        CategoryMapper::toDTO
-                ).collect(Collectors.toList());
+        if (user.getRole() != UserRole.ROLE_SUPER_ADMIN) {
+
+            if (user.getStore() == null ||
+                    !user.getStore().getId().equals(storeId)) {
+
+                throw new UserException("Access Denied");
+            }
+        }
+
+        return categoryRepository.findByStoreId(storeId)
+                .stream()
+                .map(CategoryMapper::toDTO)
+                .toList();
     }
 
     @Override
@@ -79,12 +87,66 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     private void checkAuthority(User user, Store store) throws Exception {
-        boolean isAdmin = user.getRole().equals(UserRole.ROLE_STORE_ADMIN);
-        boolean isManager = user.getRole().equals(UserRole.ROLE_STORE_MANAGER);
-        boolean isSameStore = user.equals(store.getStoreAdmin());
 
-        if (!(isAdmin && isSameStore) && !isManager){
-            throw new Exception("you dont have permission to manage this category..");
+        // Super Admin can access everything
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            return;
         }
+
+        // Store Admin can manage only his own store
+        if (user.getRole() == UserRole.ROLE_STORE_ADMIN) {
+
+            if (user.getStore() != null &&
+                    user.getStore().getId().equals(store.getId())) {
+                return;
+            }
+        }
+
+        // Store Manager can manage only his own store
+/*        if (user.getRole() == UserRole.ROLE_STORE_MANAGER) {
+
+            if (user.getStore() != null &&
+                    user.getStore().getId().equals(store.getId())) {
+                return;
+            }
+        }*/
+
+        throw new UserException(
+                "You don't have permission to manage this category."
+        );
     }
+
+    @Override
+    public List<CategoryDTO> getAllCategories(User user) throws Exception {
+
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+
+            return categoryRepository.findAll()
+                    .stream()
+                    .map(CategoryMapper::toDTO)
+                    .toList();
+        }
+
+        if (user.getStore() == null) {
+            throw new UserException("Store not assigned");
+        }
+
+        return categoryRepository.findByStoreId(user.getStore().getId())
+                .stream()
+                .map(CategoryMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public CategoryDTO getCategoryById(Long id, User user) throws Exception {
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() ->
+                        new Exception("Category not found"));
+
+        checkAuthority(user, category.getStore());
+
+        return CategoryMapper.toDTO(category);
+    }
+
 }

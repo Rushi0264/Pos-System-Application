@@ -9,4 +9,5 @@ public interface AuthService {
     AuthResponse signUp(UserDto userDto) throws UserException;
     AuthResponse login(UserDto userDto) throws UserException;
 
+    AuthResponse createUserByAdmin(UserDto userDto) throws UserException;
 }

@@ -1,6 +1,7 @@
 package com.example.pos.system.payload.dto;
 
 import com.example.pos.system.domain.PaymentType;
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.modal.Branch;
 import com.example.pos.system.modal.Order;
 import com.example.pos.system.modal.ShiftReport;
@@ -27,6 +28,11 @@ public class RefundDTO {
 
     //private ShiftReport shiftReport;
     private Long shiftReportId;
+
+    private RefundStatus status;
+
+    private String approvedByName;
+    private LocalDateTime approvedAt;
 
     private UserDto cashier;
     private String cashierName;

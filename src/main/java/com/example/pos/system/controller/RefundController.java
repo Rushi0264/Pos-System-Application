@@ -1,5 +1,6 @@
 package com.example.pos.system.controller;
 
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.modal.Refund;
 import com.example.pos.system.payload.dto.RefundDTO;
 import com.example.pos.system.service.RefundService;
@@ -75,6 +76,17 @@ public class RefundController {
     ) throws Exception {
         RefundDTO refund = refundService.getRefundById(id);
         return ResponseEntity.ok(refund);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<RefundDTO> updateStatus(
+            @PathVariable Long id,
+            @RequestParam RefundStatus status
+    ) throws Exception {
+
+        return ResponseEntity.ok(
+                refundService.updateRefundStatus(id, status)
+        );
     }
 
 }

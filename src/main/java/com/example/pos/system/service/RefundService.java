@@ -1,5 +1,6 @@
 package com.example.pos.system.service;
 
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.modal.Refund;
 import com.example.pos.system.payload.dto.RefundDTO;
 
@@ -18,4 +19,6 @@ public interface RefundService {
     List<RefundDTO> getRefundByBranch(Long branchId) throws Exception;
     RefundDTO getRefundById(Long refundId) throws Exception;
     void deleteRefund(Long refundId) throws Exception;
+
+    RefundDTO updateRefundStatus(Long id, RefundStatus status) throws Exception;
 }

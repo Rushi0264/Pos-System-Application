@@ -1,48 +1,98 @@
 package com.example.pos.system.modal;
 
+
 import com.example.pos.system.domain.UserRole;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
+
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+
+
 @Entity
-@Table(name = "users")
+@Table(name="users")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
+@JsonIgnoreProperties({
+        "hibernateLazyInitializer",
+        "handler"
+})
 public class User {
+
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+
+
     private String fullName;
 
-    @Column(nullable = false, unique = true)
-    @Email(message = "email should be valid")
+
+
+    @Column(unique = true)
     private String email;
 
-    @ManyToOne
-    private Store store;
 
-    @ManyToOne
-    private Branch branch;
 
-    @Column(nullable = false)
     private String password;
+
+
 
     private String phone;
 
-    @Column(nullable = false)
+
+
+
+    @Enumerated(EnumType.STRING)
     private UserRole role;
 
+
+
     private LocalDateTime createdAt;
+
+
+
     private LocalDateTime updatedAt;
+
+
+
     private LocalDateTime lastLogin;
+
+
+
+
+
+    @ManyToOne(
+            fetch = FetchType.LAZY
+    )
+    @JoinColumn(
+            name="store_id"
+    )
+    @JsonIgnore
+    private Store store;
+
+
+
+
+
+    @ManyToOne(
+            fetch = FetchType.LAZY
+    )
+    @JoinColumn(
+            name="branch_id"
+    )
+    @JsonIgnore
+    private Branch branch;
+
+
+
 
 }

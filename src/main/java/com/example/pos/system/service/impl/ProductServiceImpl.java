@@ -51,10 +51,11 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productDTO.getName());
         product.setDescription(productDTO.getDescription());
         product.setSku(productDTO.getSku());
-        product.setImage(product.getImage());
-        product.setMrp(product.getMrp());
-        product.setSellingPrice(product.getSellingPrice());
-        product.setBrand(product.getBrand());
+
+        product.setMrp(productDTO.getMrp());
+        product.setSellingPrice(productDTO.getSellingPrice());
+        product.setBrand(productDTO.getBrand());
+        product.setImage(productDTO.getImage());
         product.setUpdatedAt(LocalDateTime.now());
 
 
@@ -79,6 +80,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public ProductDTO getProductById(Long id) throws Exception {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new Exception("Product not found"));
+
+        return ProductMapper.toDTO(product);
+    }
+
+    @Override
     public List<ProductDTO> getProductsByStoreId(Long storeId) {
         List<Product> products = productRepository.findByStoreId(storeId);
         return products.stream()
@@ -92,5 +102,82 @@ public class ProductServiceImpl implements ProductService {
         return products.stream()
                 .map(ProductMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getAllProducts() throws Exception {
+
+        return productRepository.findAll()
+                .stream()
+                .map(ProductMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public List<ProductDTO> getProductsByStoreId(Long storeId, User user) throws Exception {
+
+        if (user.getStore() != null &&
+                !user.getStore().getId().equals(storeId)) {
+
+            throw new Exception("Access Denied");
+        }
+
+        return productRepository.findByStoreId(storeId)
+                .stream()
+                .map(ProductMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public ProductDTO getProductById(Long id, User user) throws Exception {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new Exception("Product not found"));
+
+        if (user.getStore() != null &&
+                !product.getStore().getId().equals(user.getStore().getId())) {
+
+            throw new Exception("Access Denied");
+        }
+
+        return ProductMapper.toDTO(product);
+    }
+
+    @Override
+    public List<ProductDTO> searchByKeyword(Long storeId,
+                                            String keyword,
+                                            User user) throws Exception {
+
+        if (user.getStore() != null &&
+                !user.getStore().getId().equals(storeId)) {
+
+            throw new Exception("Access Denied");
+        }
+
+        return productRepository.searchByKeyword(storeId, keyword)
+                .stream()
+                .map(ProductMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public List<ProductDTO> getAllProducts(User user) throws Exception {
+
+        if (user.getRole().name().equals("ROLE_SUPER_ADMIN")) {
+
+            return productRepository.findAll()
+                    .stream()
+                    .map(ProductMapper::toDTO)
+                    .toList();
+        }
+
+        if (user.getStore() == null) {
+            throw new Exception("Store not assigned");
+        }
+
+        return productRepository.findByStoreId(user.getStore().getId())
+                .stream()
+                .map(ProductMapper::toDTO)
+                .toList();
     }
 }

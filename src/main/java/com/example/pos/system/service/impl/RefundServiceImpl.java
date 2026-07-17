@@ -1,17 +1,20 @@
 package com.example.pos.system.service.impl;
 
+import com.example.pos.system.domain.OrderStatus;
+import com.example.pos.system.domain.PaymentStatus;
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.mapper.RefundMapper;
-import com.example.pos.system.modal.Branch;
-import com.example.pos.system.modal.Order;
-import com.example.pos.system.modal.Refund;
-import com.example.pos.system.modal.User;
+import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.RefundDTO;
+import com.example.pos.system.repository.InventoryRepository;
 import com.example.pos.system.repository.OrderRepository;
+import com.example.pos.system.repository.PaymentRepository;
 import com.example.pos.system.repository.RefundRepository;
 import com.example.pos.system.service.RefundService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +26,8 @@ public class RefundServiceImpl implements RefundService {
 
     private final UserService userService;
     private final RefundRepository refundRepository;
+    private final InventoryRepository inventoryRepository;
+    private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
 
     @Override
@@ -95,5 +100,80 @@ public class RefundServiceImpl implements RefundService {
     public void deleteRefund(Long refundId) throws Exception {
         this.getRefundById(refundId);
         refundRepository.deleteById(refundId);
+    }
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public RefundDTO updateRefundStatus(Long id, RefundStatus status) throws Exception {
+
+        User currentUser = userService.getCurrentUser();
+
+        Refund refund = refundRepository.findById(id)
+                .orElseThrow(() -> new Exception("Refund not found"));
+
+
+        if (refund.getStatus() == RefundStatus.APPROVED
+                || refund.getStatus() == RefundStatus.PROCESSED) {
+
+            throw new Exception("Refund already processed, cannot change status");
+        }
+
+        Order order = refund.getOrder();
+
+        if (order.getStatus() == OrderStatus.RETURNED
+                && (status == RefundStatus.APPROVED || status == RefundStatus.PROCESSED)) {
+
+            throw new Exception("This order has already been returned/refunded. Cannot approve another refund for it.");
+        }
+
+        if (status == RefundStatus.APPROVED || status == RefundStatus.PROCESSED) {
+
+            // 1. Inventory increase
+            if (order.getItems() != null) {
+
+                for (OrderItem item : order.getItems()) {
+
+                    Inventory inventory = inventoryRepository
+                            .findByProductIdAndBranchId(
+                                    item.getProduct().getId(),
+                                    order.getBranch().getId()
+                            );
+
+                    if (inventory != null) {
+
+                        inventory.setQuantity(
+                                inventory.getQuantity() + item.getQuantity()
+                        );
+
+                        inventoryRepository.save(inventory);
+
+                    }
+                }
+            }
+
+
+            order.setStatus(OrderStatus.RETURNED);
+            orderRepository.save(order);
+
+
+            if (order.getPayment() != null) {
+
+                order.getPayment().setStatus(PaymentStatus.REFUNDED);
+                paymentRepository.save(order.getPayment());
+
+            }
+
+
+            refund.setApprovedBy(currentUser);
+            refund.setApprovedAt(LocalDateTime.now());
+
+        }
+
+        refund.setStatus(status);
+
+        Refund updated = refundRepository.save(refund);
+
+        return RefundMapper.toDTO(updated);
     }
 }

@@ -4,7 +4,6 @@ import com.example.pos.system.domain.PaymentType;
 import jakarta.persistence.Entity;
 import lombok.*;
 
-//@Entity
 @Getter
 @Setter
 @AllArgsConstructor

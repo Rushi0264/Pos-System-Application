@@ -1,36 +1,120 @@
 package com.example.pos.system.mapper;
 
+
 import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.UserDto;
 
+
+
 public class UserMapper {
-    public static UserDto toDTO(User savedUser) {
-        UserDto userDto = new UserDto();
-        userDto.setId(savedUser.getId());
-        userDto.setFullName(savedUser.getFullName());
-        userDto.setEmail(savedUser.getEmail());
-        userDto.setRole(savedUser.getRole());
-        userDto.setCreatedAt(savedUser.getCreatedAt());
-        userDto.setUpdatedAt(savedUser.getUpdatedAt());
-        userDto.setLastLogin(savedUser.getLastLogin());
-        userDto.setPhone(savedUser.getPhone());
-        userDto.setStoreId(savedUser.getStore()!=null? savedUser.getStore().getId():null);
-        userDto.setBranchId(savedUser.getBranch()!=null? savedUser.getBranch().getId():null);
 
-        return userDto;
+
+
+    public static UserDto toDTO(User user){
+
+
+        UserDto dto=new UserDto();
+
+
+        dto.setId(user.getId());
+
+        dto.setFullName(user.getFullName());
+
+        dto.setEmail(user.getEmail());
+
+        dto.setPhone(user.getPhone());
+
+        dto.setRole(user.getRole());
+
+
+
+        if(user.getStore()!=null){
+
+            dto.setStoreId(
+                    user.getStore().getId()
+            );
+
+        }
+
+
+
+        if(user.getBranch()!=null){
+
+            dto.setBranchId(
+                    user.getBranch().getId()
+            );
+
+        }
+
+
+
+        return dto;
+
+
     }
 
-    public static User toEntity(UserDto userDto){
-        User createdUser = new User();
-        createdUser.setEmail(userDto.getEmail());
-        createdUser.setFullName(userDto.getFullName());
-        createdUser.setRole(userDto.getRole());
-        createdUser.setCreatedAt(userDto.getCreatedAt());
-        createdUser.setUpdatedAt(userDto.getUpdatedAt());
-        createdUser.setLastLogin(userDto.getLastLogin());
-        createdUser.setPhone(userDto.getPhone());
-        createdUser.setPassword(userDto.getPassword());
 
-        return createdUser;
+
+
+
+    public static User toEntity(UserDto dto){
+
+
+
+        User user = new User();
+
+
+
+        user.setFullName(
+                dto.getFullName()
+        );
+
+
+
+        user.setEmail(
+                dto.getEmail()
+        );
+
+
+
+        user.setPhone(
+                dto.getPhone()
+        );
+
+
+
+        user.setRole(
+                dto.getRole()
+        );
+
+
+
+        user.setPassword(
+                dto.getPassword()
+        );
+
+
+
+        user.setCreatedAt(
+                dto.getCreatedAt()
+        );
+
+
+
+        user.setUpdatedAt(
+                dto.getUpdatedAt()
+        );
+
+
+
+        user.setLastLogin(
+                dto.getLastLogin()
+        );
+
+
+
+        return user;
+
     }
+
 }

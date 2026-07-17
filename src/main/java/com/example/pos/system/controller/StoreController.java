@@ -1,7 +1,6 @@
 package com.example.pos.system.controller;
 
 import com.example.pos.system.domain.StoreStatus;
-import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.StoreMapper;
 import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.StoreDTO;
@@ -25,31 +24,71 @@ public class StoreController {
     @PostMapping
     public ResponseEntity<StoreDTO> createStore(
             @RequestBody StoreDTO storeDTO,
-            @RequestHeader("Authorization") String jwt) throws UserException {
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
 
         User user = userService.getUserFromJwtToken(jwt);
-        return ResponseEntity.ok(storeService.createStore(storeDTO, user));
+
+        return ResponseEntity.ok(
+                storeService.createStore(storeDTO, user)
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<StoreDTO>> getAllStore(
-            @RequestHeader("Authorization") String jwt) throws Exception {
+    public ResponseEntity<List<StoreDTO>> getAllStores(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
 
-        return ResponseEntity.ok(storeService.getAllStores());
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                storeService.getAllStores(user)
+        );
+    }
+
+    @GetMapping("/my-store")
+    public ResponseEntity<StoreDTO> getMyStore(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                storeService.getStoreByUser(user)
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<StoreDTO> getStoreById(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                storeService.getStoreById(id, user)
+        );
     }
 
     @GetMapping("/admin")
-    public ResponseEntity<StoreDTO> getStoreByAdmin(
-            @RequestHeader("Authorization") String jwt) throws Exception {
+    public ResponseEntity<StoreDTO> getStoreByAdmin()
+            throws Exception {
 
-        return ResponseEntity.ok(StoreMapper.toDTO(storeService.getStoreByAdmin()));
+        return ResponseEntity.ok(
+                StoreMapper.toDTO(
+                        storeService.getStoreByAdmin()
+                )
+        );
     }
 
     @GetMapping("/employee")
-    public ResponseEntity<StoreDTO> getStoreByEmployee(
-            @RequestHeader("Authorization") String jwt) throws Exception {
+    public ResponseEntity<StoreDTO> getStoreByEmployee()
+            throws Exception {
 
-        return ResponseEntity.ok(storeService.getStoreByEmployee());
+        return ResponseEntity.ok(
+                storeService.getStoreByEmployee()
+        );
     }
 
     @PutMapping("/{id}")
@@ -58,7 +97,9 @@ public class StoreController {
             @RequestBody StoreDTO storeDTO
     ) throws Exception {
 
-        return ResponseEntity.ok(storeService.updateStore(id, storeDTO));
+        return ResponseEntity.ok(
+                storeService.updateStore(id, storeDTO)
+        );
     }
 
     @PutMapping("/{id}/moderate")
@@ -67,15 +108,9 @@ public class StoreController {
             @RequestParam StoreStatus status
     ) throws Exception {
 
-        return ResponseEntity.ok(storeService.moderateStore(id, status));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<StoreDTO> getStoreById(
-            @PathVariable Long id,
-            @RequestHeader("Authorization") String jwt) throws Exception {
-
-        return ResponseEntity.ok(storeService.getStoreById(id));
+        return ResponseEntity.ok(
+                storeService.moderateStore(id, status)
+        );
     }
 
     @DeleteMapping("/{id}")
@@ -84,10 +119,10 @@ public class StoreController {
     ) throws Exception {
 
         storeService.deleteStore(id);
-        ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setMessage("Store deleted successfully..");
-        return ResponseEntity.ok(apiResponse);
+
+        ApiResponse response = new ApiResponse();
+        response.setMessage("Store deleted successfully");
+
+        return ResponseEntity.ok(response);
     }
-
-
 }
