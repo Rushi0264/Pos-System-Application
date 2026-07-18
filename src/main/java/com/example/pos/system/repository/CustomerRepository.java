@@ -39,4 +39,6 @@ WHERE c.createdAt BETWEEN :start AND :end
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    long countByBranchId(Long branchId);
 }

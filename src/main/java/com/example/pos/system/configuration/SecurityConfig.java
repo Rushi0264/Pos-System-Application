@@ -62,7 +62,10 @@ public class SecurityConfig {
                                 .requestMatchers(
                                         HttpMethod.GET,
                                         "/api/stores"
-                                ).hasAuthority("ROLE_SUPER_ADMIN")
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
 
                                 // Get Single Store
                                 .requestMatchers(
@@ -70,7 +73,8 @@ public class SecurityConfig {
                                         "/api/stores/**"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
                                 )
 
                                 // Update Store
@@ -171,7 +175,21 @@ public class SecurityConfig {
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
                                         "ROLE_BRANCH_MANAGER",
-                                        "ROLE_BRANCH_CASHIER"
+                                        "ROLE_BRANCH_CASHIER",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/branches"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
                                 )
 
                                 .requestMatchers(
@@ -233,7 +251,8 @@ public class SecurityConfig {
                                         "/api/inventories/**"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
                                 )
 
                                 // ==========================
@@ -338,7 +357,8 @@ public class SecurityConfig {
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
                                         "ROLE_BRANCH_MANAGER",
-                                        "ROLE_BRANCH_CASHIER"
+                                        "ROLE_BRANCH_CASHIER",
+                                        "ROLE_ACCOUNTANT"
                                 )
 
                                 .requestMatchers(
@@ -368,10 +388,35 @@ public class SecurityConfig {
                                 )
                                 .hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_INVENTORY_MANAGER"
                                 )
+
                                 .requestMatchers(
                                         HttpMethod.GET,
+                                        "/api/suppliers/**"
+                                )
+                                .hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.PUT,
+                                        "/api/suppliers/**"
+                                )
+                                .hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.DELETE,
                                         "/api/suppliers/**"
                                 )
                                 .hasAnyAuthority(
@@ -399,7 +444,9 @@ public class SecurityConfig {
                                 .hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
-                                        "ROLE_INVENTORY_MANAGER"
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_ACCOUNTANT"
                                 )
 
                                 .requestMatchers(
@@ -410,6 +457,7 @@ public class SecurityConfig {
                                 .hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
                                         "ROLE_INVENTORY_MANAGER",
                                         "ROLE_ACCOUNTANT"
                                 )

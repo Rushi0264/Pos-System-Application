@@ -70,7 +70,8 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public List<StoreDTO> getAllStores(User user) throws Exception {
 
-        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN
+                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
 
             return storeRepository.findAll()
                     .stream()

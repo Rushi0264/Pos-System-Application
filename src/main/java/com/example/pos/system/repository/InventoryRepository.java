@@ -3,6 +3,7 @@ package com.example.pos.system.repository;
 import com.example.pos.system.modal.Inventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -29,4 +30,9 @@ WHERE i.quantity <= 30
 ORDER BY i.quantity ASC
 """)
     List<Inventory> findLowStockList();
+
+    @Query("SELECT COALESCE(SUM(i.quantity), 0) FROM Inventory i WHERE i.branch.id = :branchId")
+    long getTotalStockByBranch(@Param("branchId") Long branchId);
+
+    List<Inventory> findTop10ByOrderByLastUpdateDesc();
 }

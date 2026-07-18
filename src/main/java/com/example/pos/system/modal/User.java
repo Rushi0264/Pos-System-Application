@@ -91,8 +91,4 @@ public class User {
     )
     @JsonIgnore
     private Branch branch;
-
-
-
-
 }

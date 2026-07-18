@@ -82,7 +82,7 @@ public class SupplierServiceImpl implements SupplierService {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new Exception("Supplier not found"));
 
-        checkAuthority(user, supplier.getStore());
+        checkDeleteAuthority(user, supplier.getStore());
 
         supplierRepository.delete(supplier);
     }
@@ -100,7 +100,8 @@ public class SupplierServiceImpl implements SupplierService {
 
         List<Supplier> suppliers;
 
-        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN
+                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
 
             suppliers = supplierRepository.findAll();
 
@@ -135,7 +136,32 @@ public class SupplierServiceImpl implements SupplierService {
         return SupplierMapper.toDTO(supplier);
     }
 
+    // Used for CREATE and UPDATE — Inventory Manager gets full access
     private void checkAuthority(User user, Store store) throws Exception {
+
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.ROLE_STORE_ADMIN) {
+
+            if (user.getStore() != null &&
+                    user.getStore().getId().equals(store.getId())) {
+                return;
+            }
+        }
+
+        throw new UserException(
+                "You don't have permission to manage this supplier."
+        );
+    }
+
+    // Used for DELETE only — Inventory Manager is NOT allowed
+    private void checkDeleteAuthority(User user, Store store) throws Exception {
 
         if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
             return;
@@ -150,7 +176,7 @@ public class SupplierServiceImpl implements SupplierService {
         }
 
         throw new UserException(
-                "You don't have permission to manage this supplier."
+                "You don't have permission to delete this supplier."
         );
     }
 }

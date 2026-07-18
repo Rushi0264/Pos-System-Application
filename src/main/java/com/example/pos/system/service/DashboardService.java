@@ -19,4 +19,11 @@ public interface DashboardService {
 
     List<ActivityDTO> getRecentActivity();
 
+    DashboardStatsDTO getDashboardStats();
+
+    InventoryManagerStatsDTO getInventoryManagerStats();
+
+    List<RecentStockActivityDTO> getRecentStockActivity();
+
+    AccountantStatsDTO getAccountantStats();
 }

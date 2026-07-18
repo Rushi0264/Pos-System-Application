@@ -33,6 +33,12 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Override
     public PurchaseDTO createPurchase(PurchaseDTO dto) throws Exception {
 
+        boolean invoiceExists = purchaseRepository.existsByInvoiceNumber(dto.getInvoiceNumber());
+
+        if (invoiceExists) {
+            throw new Exception("Invoice number already exists. Please use a unique invoice number.");
+        }
+
         System.out.println(dto);
         System.out.println("Total Amount : " + dto.getTotalAmount());
         System.out.println("Payment Type : " + dto.getPaymentType());
@@ -57,8 +63,6 @@ public class PurchaseServiceImpl implements PurchaseService {
                 (supplier.getStore() == null ? "NULL" : supplier.getStore().getId()));
 
         System.out.println("====================================");
-
-        checkAuthority(user, supplier.getStore());
 
         checkAuthority(user, supplier.getStore());
 
@@ -144,7 +148,8 @@ public class PurchaseServiceImpl implements PurchaseService {
 
         List<Purchase> purchases;
 
-        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN
+                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
 
             purchases = purchaseRepository.findAll();
 
@@ -189,9 +194,18 @@ public class PurchaseServiceImpl implements PurchaseService {
             return;
         }
 
+        if (user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
+            return;
+        }
+
         if (user.getRole() == UserRole.ROLE_STORE_ADMIN &&
                 user.getStore() != null &&
                 user.getStore().getId().equals(store.getId())) {
+            return;
+        }
+        if (user.getRole() == UserRole.ROLE_BRANCH_MANAGER &&
+                user.getBranch() != null &&
+                user.getBranch().getStore().getId().equals(store.getId())) {
             return;
         }
 

@@ -82,4 +82,10 @@ GROUP BY o.paymentType
     List<Object[]> getPaymentTypeBreakdown();
 
     List<Order> findByBranch_Store_Id(Long storeId);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.branch.id = :branchId AND o.createdAt BETWEEN :start AND :end")
+    double getTodaySalesByBranch(@Param("branchId") Long branchId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.branch.id = :branchId AND o.createdAt BETWEEN :start AND :end")
+    long countByBranchIdAndCreatedAtToday(@Param("branchId") Long branchId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }
