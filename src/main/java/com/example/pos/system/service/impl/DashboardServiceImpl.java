@@ -1,7 +1,9 @@
 package com.example.pos.system.service.impl;
 
 import com.example.pos.system.mapper.OrderMapper;
+import com.example.pos.system.modal.Inventory;
 import com.example.pos.system.modal.Order;
+import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.*;
 import com.example.pos.system.repository.*;
 import com.example.pos.system.service.DashboardService;
@@ -9,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 
@@ -31,6 +35,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final OrderRepository orderRepository;
     private final RefundRepository refundRepository;
     private final InventoryRepository inventoryRepository;
+    private final PurchaseRepository purchaseRepository;
 
     @Override
     public List<ActivityDTO> getRecentActivity() {
@@ -170,5 +175,97 @@ public class DashboardServiceImpl implements DashboardService {
                         total == 0 ? 0.0 : Math.round(((Long) r[1]) * 100.0 / total)
                 ))
                 .toList();
+    }
+
+
+    public DashboardStatsDTO getDashboardStats() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User currentUser = userRepository.findByEmail(email);
+        if (currentUser.getBranch() == null) {
+            throw new RuntimeException("User is not assigned to any branch.");
+        }
+
+        Long branchId = currentUser.getBranch().getId();
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+
+        double todaySales = orderRepository.getTodaySalesByBranch(branchId, start, end);
+        long orders = orderRepository.countByBranchIdAndCreatedAtToday(branchId, start, end);
+        long stock = inventoryRepository.getTotalStockByBranch(branchId);
+        long customers = customerRepository.countByBranchId(branchId);
+
+        return new DashboardStatsDTO(todaySales, orders, stock, customers);
+    }
+    @Override
+    public InventoryManagerStatsDTO getInventoryManagerStats() {
+
+        List<Inventory> allInventory = inventoryRepository.findAll();
+
+        int totalStock = allInventory.stream()
+                .mapToInt(Inventory::getQuantity)
+                .sum();
+
+        int lowStockCount = (int) allInventory.stream()
+                .filter(i -> i.getQuantity() > 0 && i.getQuantity() <= 5)
+                .count();
+
+        int outOfStockCount = (int) allInventory.stream()
+                .filter(i -> i.getQuantity() == 0)
+                .count();
+
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+
+        long incomingOrders = purchaseRepository.findAll().stream()
+                .filter(p -> p.getCreatedAt() != null &&
+                        p.getCreatedAt().isAfter(thirtyDaysAgo))
+                .count();
+
+        return InventoryManagerStatsDTO.builder()
+                .totalStock(totalStock)
+                .lowStockCount(lowStockCount)
+                .outOfStockCount(outOfStockCount)
+                .incomingOrders(incomingOrders)
+                .build();
+    }
+
+    @Override
+    public List<RecentStockActivityDTO> getRecentStockActivity() {
+
+        return inventoryRepository.findTop10ByOrderByLastUpdateDesc()
+                .stream()
+                .map(inv -> RecentStockActivityDTO.builder()
+                        .productName(inv.getProduct() != null ? inv.getProduct().getName() : "-")
+                        .branchName(inv.getBranch() != null ? inv.getBranch().getName() : "-")
+                        .quantity(inv.getQuantity())
+                        .lastUpdate(inv.getLastUpdate())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public AccountantStatsDTO getAccountantStats() {
+
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+
+        double totalRevenue = orderRepository.getTotalRevenue();
+
+        double todayRevenue = orderRepository.getTodayRevenue(start, end);
+
+        double totalPurchases = purchaseRepository.findAll().stream()
+                .mapToDouble(p -> p.getTotalAmount() == null ? 0 : p.getTotalAmount())
+                .sum();
+
+        double totalRefunds = refundRepository.findAll().stream()
+                .mapToDouble(r -> r.getAmount() == null ? 0 : r.getAmount())
+                .sum();
+
+        return AccountantStatsDTO.builder()
+                .totalRevenue(totalRevenue)
+                .todayRevenue(todayRevenue)
+                .totalPurchases(totalPurchases)
+                .totalRefunds(totalRefunds)
+                .build();
     }
 }

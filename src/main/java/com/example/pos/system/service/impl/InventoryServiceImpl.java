@@ -125,7 +125,8 @@ public class InventoryServiceImpl implements InventoryService {
 
         List<Inventory> list;
 
-        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+        if (user.getRole() == UserRole.ROLE_SUPER_ADMIN
+                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
 
             list = inventoryRepository.findAll();
 
@@ -243,6 +244,10 @@ public class InventoryServiceImpl implements InventoryService {
     private void checkAuthority(User user, Branch branch) throws Exception {
 
         if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
             return;
         }
 

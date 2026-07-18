@@ -13,4 +13,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 
     List<Purchase> findBySupplierId(Long supplierId);
 
+    boolean existsByInvoiceNumber(String invoiceNumber);
+
 }

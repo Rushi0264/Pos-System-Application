@@ -41,4 +41,23 @@ public class DashboardController {
     public ResponseEntity<List<PaymentMethodDTO>> getPaymentMethods() {
         return ResponseEntity.ok(dashboardService.getPaymentMethodBreakdown());
     }
+
+    @GetMapping("/stats")
+    public ResponseEntity<DashboardStatsDTO> getStats() {
+        return ResponseEntity.ok(dashboardService.getDashboardStats());
+    }
+    @GetMapping("/inventory-manager-stats")
+    public ResponseEntity<InventoryManagerStatsDTO> getInventoryManagerStats() {
+        return ResponseEntity.ok(dashboardService.getInventoryManagerStats());
+    }
+
+    @GetMapping("/recent-stock-activity")
+    public ResponseEntity<List<RecentStockActivityDTO>> getRecentStockActivity() {
+        return ResponseEntity.ok(dashboardService.getRecentStockActivity());
+    }
+
+    @GetMapping("/accountant-stats")
+    public ResponseEntity<AccountantStatsDTO> getAccountantStats() {
+        return ResponseEntity.ok(dashboardService.getAccountantStats());
+    }
 }

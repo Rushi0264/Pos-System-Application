@@ -41,6 +41,7 @@ public class Purchase {
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
 
+    @Column(unique = true)
     private String invoiceNumber;
 
     private String remarks;

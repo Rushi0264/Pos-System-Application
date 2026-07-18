@@ -54,14 +54,13 @@ public class BranchServiceImpl implements BranchService {
             Long storeId
     ) throws Exception {
 
-
         User user = userService.getCurrentUser();
 
+        if (user.getRole() != UserRole.ROLE_SUPER_ADMIN
+                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER) {
 
-        if(user.getRole()!= UserRole.ROLE_SUPER_ADMIN){
-
-            if(user.getStore()==null ||
-                    !user.getStore().getId().equals(storeId)){
+            if (user.getStore() == null ||
+                    !user.getStore().getId().equals(storeId)) {
 
                 throw new UserException(
                         "You cannot access another store branches"
@@ -69,13 +68,11 @@ public class BranchServiceImpl implements BranchService {
             }
         }
 
-
         return branchRepository
                 .findByStoreId(storeId)
                 .stream()
                 .map(BranchMapper::toDTO)
                 .toList();
-
     }
 
     @Override
@@ -160,7 +157,6 @@ public class BranchServiceImpl implements BranchService {
     @Override
     public List<BranchDTO> getAllBranchesByStoreId(Long storeId, User user) throws Exception {
 
-
         if(user.getRole().name().equals("BRANCH_MANAGER")) {
 
             if(user.getBranch() == null) {
@@ -169,12 +165,10 @@ public class BranchServiceImpl implements BranchService {
                 );
             }
 
-
             Long userStoreId =
                     user.getBranch()
                             .getStore()
                             .getId();
-
 
             if(!userStoreId.equals(storeId)) {
                 throw new UserException(
@@ -183,8 +177,9 @@ public class BranchServiceImpl implements BranchService {
             }
         }
 
-
-        if(user.getStore() != null) {
+        if(user.getStore() != null
+                && user.getRole() != UserRole.ROLE_SUPER_ADMIN
+                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER) {
 
             if(!user.getStore().getId().equals(storeId)) {
                 throw new UserException(
@@ -193,13 +188,11 @@ public class BranchServiceImpl implements BranchService {
             }
         }
 
-
         return branchRepository.findByStoreId(storeId)
                 .stream()
                 .map(BranchMapper::toDTO)
                 .toList();
     }
-
     @Override
     public BranchDTO getBranchById(Long id, User user) throws Exception {
 

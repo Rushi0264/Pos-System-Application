@@ -1,12 +1,16 @@
 package com.example.pos.system.service.impl;
 
 import com.example.pos.system.mapper.ProductMapper;
+import com.example.pos.system.modal.Branch;
 import com.example.pos.system.modal.Category;
+import com.example.pos.system.modal.Inventory;
 import com.example.pos.system.modal.Product;
 import com.example.pos.system.modal.Store;
 import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.ProductDTO;
+import com.example.pos.system.repository.BranchRepository;
 import com.example.pos.system.repository.CategoryRepository;
+import com.example.pos.system.repository.InventoryRepository;
 import com.example.pos.system.repository.ProductRepository;
 import com.example.pos.system.repository.StoreRepository;
 import com.example.pos.system.service.ProductService;
@@ -24,6 +28,13 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final StoreRepository storeRepository;
     private final CategoryRepository categoryRepository;
+    private final BranchRepository branchRepository;
+    private final InventoryRepository inventoryRepository;
+
+    private boolean hasFullAccess(User user) {
+        return user.getRole().name().equals("ROLE_SUPER_ADMIN")
+                || user.getRole().name().equals("ROLE_INVENTORY_MANAGER");
+    }
 
     @Override
     public ProductDTO createProduct(ProductDTO productDTO, User user) throws Exception {
@@ -39,7 +50,26 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = ProductMapper.toEntity(productDTO, store, category);
         Product savedProduct = productRepository.save(product);
-        return ProductMapper.toDTO(savedProduct);
+
+        // ===== Create initial Inventory entry (only if branch + quantity provided) =====
+        if (productDTO.getBranchId() != null
+                && productDTO.getQuantity() != null
+                && productDTO.getQuantity() > 0) {
+
+            Branch branch = branchRepository.findById(productDTO.getBranchId())
+                    .orElseThrow(() -> new Exception("Branch not found"));
+
+            Inventory inventory = Inventory.builder()
+                    .product(savedProduct)
+                    .branch(branch)
+                    .quantity(productDTO.getQuantity())
+                    .lastUpdate(LocalDateTime.now())
+                    .build();
+
+            inventoryRepository.save(inventory);
+        }
+
+        return attachStock(ProductMapper.toDTO(savedProduct));
     }
 
     @Override
@@ -67,7 +97,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product saveProduct = productRepository.save(product);
-        return ProductMapper.toDTO(saveProduct);
+        return attachStock(ProductMapper.toDTO(saveProduct));
     }
 
     @Override
@@ -85,47 +115,56 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new Exception("Product not found"));
 
-        return ProductMapper.toDTO(product);
+        return attachStock(ProductMapper.toDTO(product));
     }
 
     @Override
     public List<ProductDTO> getProductsByStoreId(Long storeId) {
         List<Product> products = productRepository.findByStoreId(storeId);
-        return products.stream()
-                .map(ProductMapper::toDTO)
-                .collect(Collectors.toList());
+        return attachStock(
+                products.stream()
+                        .map(ProductMapper::toDTO)
+                        .collect(Collectors.toList())
+        );
     }
 
     @Override
     public List<ProductDTO> searchByKeyword(Long storeId, String keyword) {
         List<Product> products = productRepository.searchByKeyword(storeId, keyword);
-        return products.stream()
-                .map(ProductMapper::toDTO)
-                .collect(Collectors.toList());
+        return attachStock(
+                products.stream()
+                        .map(ProductMapper::toDTO)
+                        .collect(Collectors.toList())
+        );
     }
 
     @Override
     public List<ProductDTO> getAllProducts() throws Exception {
 
-        return productRepository.findAll()
-                .stream()
-                .map(ProductMapper::toDTO)
-                .toList();
+        return attachStock(
+                productRepository.findAll()
+                        .stream()
+                        .map(ProductMapper::toDTO)
+                        .toList()
+        );
     }
 
     @Override
     public List<ProductDTO> getProductsByStoreId(Long storeId, User user) throws Exception {
 
-        if (user.getStore() != null &&
+        if (!hasFullAccess(user) &&
+                user.getStore() != null &&
                 !user.getStore().getId().equals(storeId)) {
 
             throw new Exception("Access Denied");
         }
 
-        return productRepository.findByStoreId(storeId)
-                .stream()
-                .map(ProductMapper::toDTO)
-                .toList();
+        return attachStock(
+                productRepository.findByStoreId(storeId)
+                        .stream()
+                        .map(ProductMapper::toDTO)
+                        .toList()
+        );
     }
 
     @Override
@@ -134,13 +173,14 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new Exception("Product not found"));
 
-        if (user.getStore() != null &&
+        if (!hasFullAccess(user) &&
+                user.getStore() != null &&
                 !product.getStore().getId().equals(user.getStore().getId())) {
 
             throw new Exception("Access Denied");
         }
 
-        return ProductMapper.toDTO(product);
+        return attachStock(ProductMapper.toDTO(product));
     }
 
     @Override
@@ -148,36 +188,64 @@ public class ProductServiceImpl implements ProductService {
                                             String keyword,
                                             User user) throws Exception {
 
-        if (user.getStore() != null &&
+        if (!hasFullAccess(user) &&
+                user.getStore() != null &&
                 !user.getStore().getId().equals(storeId)) {
 
             throw new Exception("Access Denied");
         }
 
-        return productRepository.searchByKeyword(storeId, keyword)
-                .stream()
-                .map(ProductMapper::toDTO)
-                .toList();
+        return attachStock(
+                productRepository.searchByKeyword(storeId, keyword)
+                        .stream()
+                        .map(ProductMapper::toDTO)
+                        .toList()
+        );
     }
 
     @Override
     public List<ProductDTO> getAllProducts(User user) throws Exception {
 
-        if (user.getRole().name().equals("ROLE_SUPER_ADMIN")) {
+        if (hasFullAccess(user)) {
 
-            return productRepository.findAll()
-                    .stream()
-                    .map(ProductMapper::toDTO)
-                    .toList();
+            return attachStock(
+                    productRepository.findAll()
+                            .stream()
+                            .map(ProductMapper::toDTO)
+                            .toList()
+            );
         }
 
         if (user.getStore() == null) {
             throw new Exception("Store not assigned");
         }
 
-        return productRepository.findByStoreId(user.getStore().getId())
-                .stream()
-                .map(ProductMapper::toDTO)
-                .toList();
+        return attachStock(
+                productRepository.findByStoreId(user.getStore().getId())
+                        .stream()
+                        .map(ProductMapper::toDTO)
+                        .toList()
+        );
+    }
+
+    // ===========================================================
+    // Helper: attach total stock (sum across all branches) to DTOs
+    // ===========================================================
+
+    private ProductDTO attachStock(ProductDTO dto) {
+
+        Integer total = inventoryRepository.findAll().stream()
+                .filter(inv -> inv.getProduct() != null
+                        && inv.getProduct().getId().equals(dto.getId()))
+                .mapToInt(Inventory::getQuantity)
+                .sum();
+
+        dto.setTotalStock(total);
+        return dto;
+    }
+
+    private List<ProductDTO> attachStock(List<ProductDTO> dtos) {
+        dtos.forEach(this::attachStock);
+        return dtos;
     }
 }
