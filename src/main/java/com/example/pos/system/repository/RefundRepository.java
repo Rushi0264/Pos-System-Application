@@ -1,5 +1,6 @@
 package com.example.pos.system.repository;
 
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.modal.Refund;
 import com.example.pos.system.modal.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,4 +29,16 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
         ORDER BY r.createdAt DESC
         """)
     List<Refund> findRecentRefunds(Pageable pageable);
+
+    List<Refund> findByCashierIdAndCreatedAtBetweenAndStatusIn(
+            Long cashierId,
+            LocalDateTime start,
+            LocalDateTime end,
+            List<RefundStatus> statuses
+    );
+
+    List<Refund> findByShiftReportIdAndStatusIn(
+            Long shiftReportId,
+            List<RefundStatus> statuses
+    );
 }

@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -31,6 +32,9 @@ public class ProductDTO {
 
     private Long storeId;
 
+    private Integer storeStock;   // undistributed, store-level (from StockMovement ledger)
+    private Integer branchStock;  // distributed to branches (from Inventory table, existing totalStock logic)
+
     // ===== Stock related (not persisted on Product entity) =====
 
     // Used only while CREATING a product — which branch to stock it in
@@ -45,5 +49,5 @@ public class ProductDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-
+    private List<BranchStockDTO> branchBreakdown;
 }

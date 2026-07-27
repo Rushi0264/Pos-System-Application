@@ -35,4 +35,6 @@ ORDER BY i.quantity ASC
     long getTotalStockByBranch(@Param("branchId") Long branchId);
 
     List<Inventory> findTop10ByOrderByLastUpdateDesc();
+
+    List<Inventory> findByProductId(Long id);
 }

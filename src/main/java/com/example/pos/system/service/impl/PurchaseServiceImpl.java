@@ -1,5 +1,6 @@
 package com.example.pos.system.service.impl;
 
+import com.example.pos.system.domain.MovementType;
 import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.PurchaseItemMapper;
@@ -7,9 +8,11 @@ import com.example.pos.system.mapper.PurchaseMapper;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.PurchaseDTO;
 import com.example.pos.system.payload.dto.PurchaseItemDTO;
+import com.example.pos.system.payload.dto.StockMovementDTO;
 import com.example.pos.system.repository.*;
 import com.example.pos.system.service.InventoryService;
 import com.example.pos.system.service.PurchaseService;
+import com.example.pos.system.service.StockMovementService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final InventoryRepository inventoryRepository;
     private final BranchRepository branchRepository;
     private final UserService userService;
+    private final StockMovementService stockMovementService;
     private final InventoryService inventoryService;
 
     @Override
@@ -39,30 +43,10 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw new Exception("Invoice number already exists. Please use a unique invoice number.");
         }
 
-        System.out.println(dto);
-        System.out.println("Total Amount : " + dto.getTotalAmount());
-        System.out.println("Payment Type : " + dto.getPaymentType());
-        System.out.println("Items : " + dto.getItems());
-
         User user = userService.getCurrentUser();
 
         Supplier supplier = supplierRepository.findById(dto.getSupplierId())
                 .orElseThrow(() -> new Exception("Supplier not found"));
-
-        Branch branch = branchRepository.findById(dto.getBranchId())
-                .orElseThrow(() -> new Exception("Branch not found"));
-
-        System.out.println("========== PURCHASE DEBUG ==========");
-        System.out.println("User ID: " + user.getId());
-        System.out.println("Role: " + user.getRole());
-
-        System.out.println("User Store: " +
-                (user.getStore() == null ? "NULL" : user.getStore().getId()));
-
-        System.out.println("Supplier Store: " +
-                (supplier.getStore() == null ? "NULL" : supplier.getStore().getId()));
-
-        System.out.println("====================================");
 
         checkAuthority(user, supplier.getStore());
 
@@ -70,7 +54,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 dto,
                 supplier,
                 supplier.getStore(),
-                branch,
+                null,          // branch = null
                 user
         );
 
@@ -93,13 +77,16 @@ public class PurchaseServiceImpl implements PurchaseService {
 
             items.add(item);
 
-            Long branchId = branch.getId();
+            StockMovementDTO movementDTO = StockMovementDTO.builder()
+                    .productId(product.getId())
+                    .storeId(supplier.getStore().getId())
+                    .branchId(null)
+                    .quantity(item.getQuantity())
+                    .type(MovementType.PURCHASE)
+                    .description("Purchase invoice: " + dto.getInvoiceNumber())
+                    .build();
 
-            inventoryService.addStock(
-                    product.getId(),
-                    branchId,
-                    item.getQuantity()
-            );
+            stockMovementService.createMovement(movementDTO);
         }
 
         savedPurchase.setItems(items);
@@ -195,6 +182,10 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
 
         if (user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.ROLE_ACCOUNTANT) {
             return;
         }
 

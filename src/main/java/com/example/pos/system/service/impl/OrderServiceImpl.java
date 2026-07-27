@@ -289,7 +289,8 @@ public class OrderServiceImpl implements OrderService {
         if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
             orders = orderRepository.findAll();
         }
-        else if (user.getRole() == UserRole.ROLE_STORE_ADMIN) {
+        else if (user.getRole() == UserRole.ROLE_STORE_ADMIN
+                || user.getRole() == UserRole.ROLE_ACCOUNTANT) {
 
             if (user.getStore() == null) {
                 throw new UserException("Store not assigned to user");
@@ -496,31 +497,20 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new Exception("Order not found"));
 
+        if (status == OrderStatus.RETURNED) {
+            throw new Exception(
+                    "Order cannot be marked as RETURNED directly. Please create and approve a refund instead."
+            );
+        }
+
         System.out.println("========== UPDATE ORDER ==========");
         System.out.println("Logged User : " + currentUser.getEmail());
         System.out.println("Role : " + currentUser.getRole());
+        System.out.println("User Branch : " +
+                (currentUser.getBranch()==null ? "NULL" : currentUser.getBranch().getId()));
+        System.out.println("Order Branch : " + order.getBranch().getId());
 
-        System.out.println(
-                "User Branch : " +
-                        (currentUser.getBranch()==null ?
-                                "NULL" :
-                                currentUser.getBranch().getId())
-        );
-
-        System.out.println(
-                "Order Branch : " +
-                        order.getBranch().getId()
-        );
-
-
-        if (currentUser.getRole() != UserRole.ROLE_SUPER_ADMIN) {
-
-            if (currentUser.getBranch() == null ||
-                    !currentUser.getBranch().getId().equals(order.getBranch().getId())) {
-
-                throw new Exception("Access Denied");
-            }
-        }
+        checkBranchAccess(currentUser, order.getBranch());
 
         order.setStatus(status);
 

@@ -6,10 +6,12 @@ import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.ShiftReportDTO;
 import com.example.pos.system.repository.*;
 import com.example.pos.system.service.ShiftReportService;
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,20 +27,20 @@ public class ShiftReportServiceImpl implements ShiftReportService {
     private final RefundRepository refundRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private static final List<RefundStatus> COUNTED_REFUND_STATUSES =
+            List.of(RefundStatus.APPROVED, RefundStatus.PROCESSED);
 
     @Override
     public ShiftReportDTO startShift() throws Exception {
 
         User currentUser = userService.getCurrentUser();
         LocalDateTime shiftStart = LocalDateTime.now();
-        LocalDateTime startOfDay = shiftStart.withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endOfDay = shiftStart.withHour(23).withMinute(59).withSecond(59);
 
-        Optional<ShiftReport> existing = shiftReportRepository.findByCashierAndShiftStartBetween(
-                currentUser, startOfDay, endOfDay
-        );
+        Optional<ShiftReport> existing = shiftReportRepository
+                .findTopByCashierAndShiftEndIsNullOrderByShiftStartDesc(currentUser);
+
         if (existing.isPresent()) {
-            throw new Exception("Shift already started today");
+            throw new Exception("You already have an active shift. Please end it before starting a new one.");
         }
         Branch branch = currentUser.getBranch();
 
@@ -62,10 +64,14 @@ public class ShiftReportServiceImpl implements ShiftReportService {
 
         shiftReport.setShiftEnd(shiftEnd);
 
-        List<Refund> refunds = refundRepository.findByCashierIdAndCreatedAtBetween(
+        List<Refund> refunds = refundRepository.findByCashierIdAndCreatedAtBetweenAndStatusIn(
                 currentUser.getId(),
-                shiftReport.getShiftStart(), shiftReport.getShiftEnd()
+                shiftReport.getShiftStart(), shiftReport.getShiftEnd(),
+                COUNTED_REFUND_STATUSES
         );
+        for (Refund refund : refunds) {
+            refund.setShiftReport(shiftReport);
+        }
 
         double totalRefunds = refunds.stream()
                 .mapToDouble(refund -> refund.getAmount() != null ?
@@ -128,6 +134,7 @@ public class ShiftReportServiceImpl implements ShiftReportService {
     }
 
     @Override
+    @Transactional
     public ShiftReportDTO getCurrentShiftProgress(Long cashierId) throws Exception {
 
         User user = userService.getCurrentUser();
@@ -143,9 +150,10 @@ public class ShiftReportServiceImpl implements ShiftReportService {
                 user, shiftReport.getShiftStart(), now
         );
 
-        List<Refund> refunds = refundRepository.findByCashierIdAndCreatedAtBetween(
+        List<Refund> refunds = refundRepository.findByCashierIdAndCreatedAtBetweenAndStatusIn(
                 user.getId(),
-                shiftReport.getShiftStart(), now
+                shiftReport.getShiftStart(), now,
+                COUNTED_REFUND_STATUSES
         );
 
         double totalRefunds = refunds.stream()
@@ -158,17 +166,23 @@ public class ShiftReportServiceImpl implements ShiftReportService {
         int totalOrders = orders.size();
         double netSales = totalSales - totalRefunds;
 
-        shiftReport.setTotalRefunds(totalRefunds);
-        shiftReport.setTotalSale(totalSales);
-        shiftReport.setTotalOrders(totalOrders);
-        shiftReport.setNetSale(netSales);
-        shiftReport.setRecentOrders(getRecentOrders(orders));
-        shiftReport.setTopSellingProducts(getTopSellingProducts(orders));
-        shiftReport.setPaymentSummaries(getPaymentSummaries(orders, totalSales));
-        shiftReport.setRefunds(refunds);
+        ShiftReport progressView = ShiftReport.builder()
+                .id(shiftReport.getId())
+                .cashier(shiftReport.getCashier())
+                .branch(shiftReport.getBranch())
+                .shiftStart(shiftReport.getShiftStart())
+                .shiftEnd(shiftReport.getShiftEnd())
+                .totalRefunds(totalRefunds)
+                .totalSale(totalSales)
+                .totalOrders(totalOrders)
+                .netSale(netSales)
+                .recentOrders(getRecentOrders(orders))
+                .topSellingProducts(getTopSellingProducts(orders))
+                .paymentSummaries(getPaymentSummaries(orders, totalSales))
+                .refunds(refunds)
+                .build();
 
-        ShiftReport savedReport = shiftReportRepository.save(shiftReport);
-        return ShiftReportMapper.toDTO(savedReport);
+        return ShiftReportMapper.toDTO(progressView);
     }
 
     @Override
@@ -248,5 +262,13 @@ public class ShiftReportServiceImpl implements ShiftReportService {
                 .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
                 .limit(5)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ShiftReportDTO> getShiftReportsByStoreId(Long storeId) {
+        List<ShiftReport> reports = shiftReportRepository.findByBranch_StoreId(storeId);
+        return reports.stream().map(
+                ShiftReportMapper::toDTO
+        ).collect(Collectors.toList());
     }
 }

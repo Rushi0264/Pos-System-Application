@@ -40,7 +40,9 @@ public class UserDto {
 
     private Long branchId;
 
+    private String storeBrand;
 
+    private String branchName;
 
     private LocalDateTime createdAt;
 

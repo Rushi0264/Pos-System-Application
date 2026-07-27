@@ -34,6 +34,10 @@ public class UserMapper {
                     user.getStore().getId()
             );
 
+            dto.setStoreBrand(
+                    user.getStore().getBrand()
+            );
+
         }
 
 
@@ -42,6 +46,10 @@ public class UserMapper {
 
             dto.setBranchId(
                     user.getBranch().getId()
+            );
+
+            dto.setBranchName(
+                    user.getBranch().getName()
             );
 
         }

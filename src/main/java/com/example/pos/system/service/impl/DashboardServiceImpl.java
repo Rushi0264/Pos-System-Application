@@ -5,6 +5,7 @@ import com.example.pos.system.modal.Inventory;
 import com.example.pos.system.modal.Order;
 import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.*;
+import com.example.pos.system.domain.RefundStatus;
 import com.example.pos.system.repository.*;
 import com.example.pos.system.service.DashboardService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final StoreRepository storeRepository;
     private final BranchRepository branchRepository;
+
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
@@ -258,6 +260,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .sum();
 
         double totalRefunds = refundRepository.findAll().stream()
+                .filter(r -> r.getStatus() == RefundStatus.APPROVED
+                        || r.getStatus() == RefundStatus.PROCESSED)
                 .mapToDouble(r -> r.getAmount() == null ? 0 : r.getAmount())
                 .sum();
 

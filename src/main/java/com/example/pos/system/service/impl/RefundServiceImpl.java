@@ -12,6 +12,7 @@ import com.example.pos.system.repository.PaymentRepository;
 import com.example.pos.system.repository.RefundRepository;
 import com.example.pos.system.service.RefundService;
 import com.example.pos.system.service.UserService;
+import com.example.pos.system.repository.ShiftReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,8 @@ public class RefundServiceImpl implements RefundService {
     private final InventoryRepository inventoryRepository;
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final ShiftReportRepository shiftReportRepository;
+
 
     @Override
     public RefundDTO createRefund(RefundDTO refund) throws Exception {
@@ -44,7 +47,7 @@ public class RefundServiceImpl implements RefundService {
                 .cashier(cashier)
                 .branch(branch)
                 .reason(refund.getReason())
-                .amount(refund.getAmount())
+                .amount(order.getTotalAmount())
                 .createdAt(refund.getCreatedAt())
                 .build();
         Refund savedRefund = refundRepository.save(createdRefund);
@@ -98,7 +101,14 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     public void deleteRefund(Long refundId) throws Exception {
-        this.getRefundById(refundId);
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new Exception("Refund not found."));
+
+        if (refund.getStatus() == RefundStatus.APPROVED
+                || refund.getStatus() == RefundStatus.PROCESSED) {
+            throw new Exception("Cannot delete a refund that has already been approved or processed.");
+        }
+
         refundRepository.deleteById(refundId);
     }
 
@@ -167,6 +177,37 @@ public class RefundServiceImpl implements RefundService {
 
             refund.setApprovedBy(currentUser);
             refund.setApprovedAt(LocalDateTime.now());
+
+            ShiftReport shiftReport = shiftReportRepository
+                    .findByCashierAndShiftStartLessThanEqualAndShiftEndGreaterThanEqual(
+                            order.getCashier(),
+                            order.getCreatedAt(),
+                            order.getCreatedAt()
+                    )
+                    .orElse(null);
+
+            if (shiftReport != null) {
+
+                refund.setShiftReport(shiftReport);
+
+                List<Refund> shiftRefunds = refundRepository
+                        .findByShiftReportIdAndStatusIn(
+                                shiftReport.getId(),
+                                List.of(RefundStatus.APPROVED, RefundStatus.PROCESSED)
+                        );
+
+                shiftRefunds.add(refund);
+
+                double totalRefunds = shiftRefunds.stream()
+                        .mapToDouble(r -> r.getAmount() != null ? r.getAmount() : 0.0)
+                        .sum();
+
+                shiftReport.setTotalRefunds(totalRefunds);
+                shiftReport.setNetSale(shiftReport.getTotalSale() - totalRefunds);
+                shiftReport.setRefunds(shiftRefunds);
+
+                shiftReportRepository.save(shiftReport);
+            }
 
         }
 

@@ -71,7 +71,8 @@ public class StoreServiceImpl implements StoreService {
     public List<StoreDTO> getAllStores(User user) throws Exception {
 
         if (user.getRole() == UserRole.ROLE_SUPER_ADMIN
-                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
+                || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER
+                || user.getRole() == UserRole.ROLE_ACCOUNTANT) {
 
             return storeRepository.findAll()
                     .stream()

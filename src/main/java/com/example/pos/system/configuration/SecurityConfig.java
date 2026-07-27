@@ -64,7 +64,9 @@ public class SecurityConfig {
                                         "/api/stores"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_INVENTORY_MANAGER"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
                                 )
 
                                 // Get Single Store
@@ -74,7 +76,8 @@ public class SecurityConfig {
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
-                                        "ROLE_INVENTORY_MANAGER"
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
                                 )
 
                                 // Update Store
@@ -153,7 +156,8 @@ public class SecurityConfig {
                                         "/api/products/**"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
+                                        "ROLE_STORE_ADMIN",
+                                "ROLE_INVENTORY_MANAGER"
                                 )
 
                                 // ==========================
@@ -258,6 +262,25 @@ public class SecurityConfig {
                                 // ==========================
 // STOCK MOVEMENT APIs
 // ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/stock-movements/transfer"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/stock-movements/store/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_BRANCH_MANAGER"
+                                )
 
                                 .requestMatchers(
                                         HttpMethod.POST,

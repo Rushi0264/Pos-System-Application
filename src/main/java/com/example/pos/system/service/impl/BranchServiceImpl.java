@@ -3,12 +3,9 @@ package com.example.pos.system.service.impl;
 import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.BranchMapper;
-import com.example.pos.system.modal.Branch;
-import com.example.pos.system.modal.Store;
-import com.example.pos.system.modal.User;
+import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.BranchDTO;
-import com.example.pos.system.repository.BranchRepository;
-import com.example.pos.system.repository.StoreRepository;
+import com.example.pos.system.repository.*;
 import com.example.pos.system.service.BranchService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +22,9 @@ public class BranchServiceImpl implements BranchService {
     private final BranchRepository branchRepository;
     private final StoreRepository storeRepository;
     private final UserService userService;
+    private final InventoryRepository inventoryRepository;
+    private final PurchaseRepository purchaseRepository;
+    private final UserRepository userRepository;
 
     @Override
     public BranchDTO createBranch(BranchDTO branchDTO) throws UserException {
@@ -129,6 +129,16 @@ public class BranchServiceImpl implements BranchService {
         Branch existing = branchRepository.findById(id).orElseThrow(
                 () -> new Exception("branch not found..")
         );
+
+        List<Inventory> inventories = inventoryRepository.findByBranchId(id);
+        inventoryRepository.deleteAll(inventories);
+
+        List<Purchase> purchases = purchaseRepository.findByBranchId(id);
+        purchaseRepository.deleteAll(purchases);
+
+        List<User> users = userRepository.findByBranchId(id);
+        userRepository.deleteAll(users);
+
         branchRepository.delete(existing);
     }
 
@@ -179,7 +189,8 @@ public class BranchServiceImpl implements BranchService {
 
         if(user.getStore() != null
                 && user.getRole() != UserRole.ROLE_SUPER_ADMIN
-                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER) {
+                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER
+                && user.getRole() != UserRole.ROLE_ACCOUNTANT) {
 
             if(!user.getStore().getId().equals(storeId)) {
                 throw new UserException(

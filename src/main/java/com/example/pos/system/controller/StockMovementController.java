@@ -80,4 +80,37 @@ public class StockMovementController {
 
     }
 
+
+    @PostMapping("/transfer")
+    public ResponseEntity<String> transferStockToBranch(
+            @RequestParam Long storeId,
+            @RequestParam Long branchId,
+            @RequestParam Long productId,
+            @RequestParam Integer quantity
+    ) throws Exception {
+
+        stockMovementService.transferStockToBranch(
+                storeId, branchId, productId, quantity
+        );
+
+        return ResponseEntity.ok("Stock transferred successfully");
+    }
+
+
+
+    /*
+        Get current store-level stock for a product
+    */
+    @GetMapping("/store/{storeId}/product/{productId}")
+    public ResponseEntity<Integer> getStoreStock(
+            @PathVariable Long storeId,
+            @PathVariable Long productId
+    ) throws Exception {
+
+        return ResponseEntity.ok(
+                stockMovementService.getStoreStock(storeId, productId)
+        );
+
+    }
+
 }

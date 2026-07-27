@@ -121,7 +121,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<InventoryDTO> getAllInventory(User user) {
+    public List<InventoryDTO> getAllInventory(User user) throws Exception {
 
         List<Inventory> list;
 
@@ -129,6 +129,14 @@ public class InventoryServiceImpl implements InventoryService {
                 || user.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
 
             list = inventoryRepository.findAll();
+
+        } else if (user.getRole() == UserRole.ROLE_BRANCH_MANAGER) {
+
+            if (user.getBranch() == null) {
+                throw new Exception("User is not assigned to any branch");
+            }
+
+            list = inventoryRepository.findByBranchId(user.getBranch().getId());
 
         } else {
 
@@ -255,6 +263,15 @@ public class InventoryServiceImpl implements InventoryService {
 
             if (user.getStore() != null &&
                     user.getStore().getId().equals(branch.getStore().getId())) {
+                return;
+            }
+        }
+
+        if (user.getRole() == UserRole.ROLE_BRANCH_MANAGER
+                || user.getRole() == UserRole.ROLE_BRANCH_CASHIER) {
+
+            if (user.getBranch() != null &&
+                    user.getBranch().getId().equals(branch.getId())) {
                 return;
             }
         }
