@@ -40,6 +40,10 @@ public class Inventory {
 
     private LocalDateTime lastUpdate;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer lowStockThreshold = 5;
+
     @PrePersist
     @PreUpdate
     protected void onUpdate(){

@@ -35,6 +35,15 @@ public class PaymentController {
     }
 
 
+    @GetMapping("/branch/{branchId}")
+    public ResponseEntity<List<PaymentDTO>> getPaymentsByBranch(
+            @PathVariable Long branchId
+    ) throws Exception {
+
+        return ResponseEntity.ok(
+                paymentService.getPaymentsByBranch(branchId)
+        );
+    }
 
     @GetMapping("/order/{orderId}")
     public ResponseEntity<PaymentDTO> getByOrder(

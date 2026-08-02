@@ -19,7 +19,7 @@ public interface PaymentService {
             Long orderId
     ) throws Exception;
 
-
+    List<PaymentDTO> getPaymentsByBranch(Long branchId) throws Exception;
 
     List<PaymentDTO> getAllPayments()
             throws Exception;

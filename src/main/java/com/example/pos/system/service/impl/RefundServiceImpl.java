@@ -3,6 +3,8 @@ package com.example.pos.system.service.impl;
 import com.example.pos.system.domain.OrderStatus;
 import com.example.pos.system.domain.PaymentStatus;
 import com.example.pos.system.domain.RefundStatus;
+import com.example.pos.system.domain.UserRole;
+import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.RefundMapper;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.RefundDTO;
@@ -10,8 +12,10 @@ import com.example.pos.system.repository.InventoryRepository;
 import com.example.pos.system.repository.OrderRepository;
 import com.example.pos.system.repository.PaymentRepository;
 import com.example.pos.system.repository.RefundRepository;
+import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.RefundService;
 import com.example.pos.system.service.UserService;
+import com.example.pos.system.repository.ShiftReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +32,10 @@ public class RefundServiceImpl implements RefundService {
     private final RefundRepository refundRepository;
     private final InventoryRepository inventoryRepository;
     private final PaymentRepository paymentRepository;
+    private final NotificationService notificationService;
     private final OrderRepository orderRepository;
+    private final ShiftReportRepository shiftReportRepository;
+
 
     @Override
     public RefundDTO createRefund(RefundDTO refund) throws Exception {
@@ -44,7 +51,7 @@ public class RefundServiceImpl implements RefundService {
                 .cashier(cashier)
                 .branch(branch)
                 .reason(refund.getReason())
-                .amount(refund.getAmount())
+                .amount(order.getTotalAmount())
                 .createdAt(refund.getCreatedAt())
                 .build();
         Refund savedRefund = refundRepository.save(createdRefund);
@@ -53,9 +60,36 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     public List<RefundDTO> getAllRefunds() throws Exception {
-        return refundRepository.findAll().stream().map(
-                RefundMapper::toDTO
-        ).collect(Collectors.toList());
+
+        User currentUser = userService.getCurrentUser();
+
+        if (currentUser.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+
+            return refundRepository.findAll().stream()
+                    .map(RefundMapper::toDTO)
+                    .collect(Collectors.toList());
+
+        } else if (currentUser.getRole() == UserRole.ROLE_STORE_ADMIN
+                || currentUser.getRole() == UserRole.ROLE_ACCOUNTANT
+                || currentUser.getRole() == UserRole.ROLE_INVENTORY_MANAGER) {
+
+            if (currentUser.getStore() == null) {
+                return List.of();
+            }
+
+            return refundRepository.findByBranchStoreId(currentUser.getStore().getId()).stream()
+                    .map(RefundMapper::toDTO)
+                    .collect(Collectors.toList());
+
+        } else if (currentUser.getBranch() != null) {
+
+            return refundRepository.findByBranchId(currentUser.getBranch().getId()).stream()
+                    .map(RefundMapper::toDTO)
+                    .collect(Collectors.toList());
+
+        } else {
+            return List.of();
+        }
     }
 
     @Override
@@ -83,6 +117,16 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     public List<RefundDTO> getRefundByBranch(Long branchId) throws Exception {
+
+        User currentUser = userService.getCurrentUser();
+
+        if (currentUser.getRole() != UserRole.ROLE_SUPER_ADMIN) {
+            if (currentUser.getBranch() == null ||
+                    !currentUser.getBranch().getId().equals(branchId)) {
+                throw new UserException("You cannot access refunds for this branch");
+            }
+        }
+
         return refundRepository.findByBranchId(branchId).stream().map(
                 RefundMapper::toDTO
         ).collect(Collectors.toList());
@@ -98,7 +142,14 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     public void deleteRefund(Long refundId) throws Exception {
-        this.getRefundById(refundId);
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new Exception("Refund not found."));
+
+        if (refund.getStatus() == RefundStatus.APPROVED
+                || refund.getStatus() == RefundStatus.PROCESSED) {
+            throw new Exception("Cannot delete a refund that has already been approved or processed.");
+        }
+
         refundRepository.deleteById(refundId);
     }
 
@@ -146,7 +197,8 @@ public class RefundServiceImpl implements RefundService {
                                 inventory.getQuantity() + item.getQuantity()
                         );
 
-                        inventoryRepository.save(inventory);
+                        Inventory savedInventory = inventoryRepository.save(inventory);
+                        notificationService.checkAndNotifyLowStock(savedInventory);
 
                     }
                 }
@@ -167,6 +219,37 @@ public class RefundServiceImpl implements RefundService {
 
             refund.setApprovedBy(currentUser);
             refund.setApprovedAt(LocalDateTime.now());
+
+            ShiftReport shiftReport = shiftReportRepository
+                    .findByCashierAndShiftStartLessThanEqualAndShiftEndGreaterThanEqual(
+                            order.getCashier(),
+                            order.getCreatedAt(),
+                            order.getCreatedAt()
+                    )
+                    .orElse(null);
+
+            if (shiftReport != null) {
+
+                refund.setShiftReport(shiftReport);
+
+                List<Refund> shiftRefunds = refundRepository
+                        .findByShiftReportIdAndStatusIn(
+                                shiftReport.getId(),
+                                List.of(RefundStatus.APPROVED, RefundStatus.PROCESSED)
+                        );
+
+                shiftRefunds.add(refund);
+
+                double totalRefunds = shiftRefunds.stream()
+                        .mapToDouble(r -> r.getAmount() != null ? r.getAmount() : 0.0)
+                        .sum();
+
+                shiftReport.setTotalRefunds(totalRefunds);
+                shiftReport.setNetSale(shiftReport.getTotalSale() - totalRefunds);
+                shiftReport.setRefunds(shiftRefunds);
+
+                shiftReportRepository.save(shiftReport);
+            }
 
         }
 

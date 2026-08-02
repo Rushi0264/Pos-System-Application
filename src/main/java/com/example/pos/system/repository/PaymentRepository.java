@@ -17,4 +17,8 @@ public interface PaymentRepository
     @Query("SELECT p.paymentType, COUNT(p) FROM Payment p GROUP BY p.paymentType")
     List<Object[]> countGroupByPaymentType();
 
+    List<Payment> findByOrder_Branch_Id(Long branchId);
+
+    List<Payment> findByOrder_Branch_Store_Id(Long storeId);
+
 }

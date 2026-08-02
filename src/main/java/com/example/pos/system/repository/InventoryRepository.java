@@ -35,4 +35,20 @@ ORDER BY i.quantity ASC
     long getTotalStockByBranch(@Param("branchId") Long branchId);
 
     List<Inventory> findTop10ByOrderByLastUpdateDesc();
+
+    List<Inventory> findByProductId(Long id);
+
+    @Query("""
+    SELECT i FROM Inventory i
+    LEFT JOIN FETCH i.product
+    LEFT JOIN FETCH i.branch
+    WHERE i.branch.store.id = :storeId AND i.quantity <= 30
+    ORDER BY i.quantity ASC
+""")
+    List<Inventory> findLowStockListByStore(@Param("storeId") Long storeId);
+
+    @Query("SELECT COUNT(i) FROM Inventory i WHERE i.branch.store.id = :storeId AND i.quantity <= 10")
+    Long getLowStockProductsByStore(@Param("storeId") Long storeId);
+
+    List<Inventory> findTop10ByBranch_Store_IdOrderByLastUpdateDesc(Long storeId);
 }

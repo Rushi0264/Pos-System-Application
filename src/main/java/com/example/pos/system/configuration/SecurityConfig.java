@@ -64,8 +64,37 @@ public class SecurityConfig {
                                         "/api/stores"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_INVENTORY_MANAGER"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
                                 )
+
+                                // Admin contact (must come BEFORE the general "Get Single Store"
+                                // matcher below, since Spring Security uses first-match-wins ordering)
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/stores/*/admin-contact"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER"
+                                )
+
+                                // Store Admin APIs (must come BEFORE the general
+                                // "Get Single Store" matcher below)
+                                .requestMatchers("/api/stores/admin/**")
+                                .hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN"
+                                )
+
+                                // Employee Store (must come BEFORE the general
+                                // "Get Single Store" matcher below)
+                                .requestMatchers("/api/stores/employee/**")
+                                .authenticated()
 
                                 // Get Single Store
                                 .requestMatchers(
@@ -74,7 +103,9 @@ public class SecurityConfig {
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
                                         "ROLE_STORE_ADMIN",
-                                        "ROLE_INVENTORY_MANAGER"
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT",
+                                        "ROLE_BRANCH_MANAGER"
                                 )
 
                                 // Update Store
@@ -94,17 +125,6 @@ public class SecurityConfig {
                                         HttpMethod.PUT,
                                         "/api/stores/*/moderate"
                                 ).hasAuthority("ROLE_SUPER_ADMIN")
-
-                                // Store Admin APIs
-                                .requestMatchers("/api/stores/admin/**")
-                                .hasAnyAuthority(
-                                        "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
-                                )
-
-                                // Employee Store
-                                .requestMatchers("/api/stores/employee/**")
-                                .authenticated()
 
                                 // ==========================
                                 // PRODUCT APIs
@@ -153,7 +173,8 @@ public class SecurityConfig {
                                         "/api/products/**"
                                 ).hasAnyAuthority(
                                         "ROLE_SUPER_ADMIN",
-                                        "ROLE_STORE_ADMIN"
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
                                 )
 
                                 // ==========================
@@ -258,6 +279,25 @@ public class SecurityConfig {
                                 // ==========================
 // STOCK MOVEMENT APIs
 // ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/stock-movements/transfer"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/stock-movements/store/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_BRANCH_MANAGER"
+                                )
 
                                 .requestMatchers(
                                         HttpMethod.POST,
@@ -434,6 +474,17 @@ public class SecurityConfig {
                                         "ROLE_STORE_ADMIN",
                                         "ROLE_ACCOUNTANT"
                                 )
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/payments/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_ACCOUNTANT",
+
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER"
+                                )
 
                                 //Purchase
                                 .requestMatchers(
@@ -478,6 +529,108 @@ public class SecurityConfig {
                                 )
 
                                 // ==========================
+// ==========================
+// REFUND APIs
+// ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/refunds"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.PUT,
+                                        "/api/refunds/*/status"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/refunds/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER",
+                                        "ROLE_ACCOUNTANT"
+                                )
+
+                                // ==========================
+// ==========================
+// SHIFT REPORT APIs
+// ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/shift-reports/start"
+                                ).hasAuthority("ROLE_BRANCH_CASHIER")
+
+                                .requestMatchers(
+                                        HttpMethod.PATCH,
+                                        "/api/shift-reports/end"
+                                ).hasAuthority("ROLE_BRANCH_CASHIER")
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/shift-reports/current"
+                                ).hasAuthority("ROLE_BRANCH_CASHIER")
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/shift-reports/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER",
+                                        "ROLE_ACCOUNTANT"
+                                )
+
+                                // ==========================
+// ==========================
+// CATEGORY APIs
+// ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/categories"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/categories/**"
+                                ).authenticated()
+
+                                .requestMatchers(
+                                        HttpMethod.PUT,
+                                        "/api/categories/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.DELETE,
+                                        "/api/categories/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN"
+                                )
+
+                                // ==========================
 // USER APIs
 // ==========================
 
@@ -517,6 +670,43 @@ public class SecurityConfig {
                                         "/api/users/**"
                                 )
                                 .hasAuthority("ROLE_SUPER_ADMIN")
+
+                                // ==========================
+// ==========================
+// NOTIFICATION APIs
+// ==========================
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/notifications/branch/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/notifications/store/**"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_ACCOUNTANT"
+                                )
+
+                                .requestMatchers(
+                                        HttpMethod.PUT,
+                                        "/api/notifications/*/read"
+                                ).hasAnyAuthority(
+                                        "ROLE_SUPER_ADMIN",
+                                        "ROLE_STORE_ADMIN",
+                                        "ROLE_INVENTORY_MANAGER",
+                                        "ROLE_BRANCH_MANAGER",
+                                        "ROLE_BRANCH_CASHIER"
+                                )
                                 // ==========================
                                 // EVERYTHING ELSE
                                 // ==========================

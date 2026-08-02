@@ -26,4 +26,8 @@ public interface DashboardService {
     List<RecentStockActivityDTO> getRecentStockActivity();
 
     AccountantStatsDTO getAccountantStats();
+
+    List<StoreDTO> getRecentStores();
+    List<MonthlySalesDTO> getStoreGrowth();
+    List<PaymentMethodDTO> getStoreStatusBreakdown();
 }

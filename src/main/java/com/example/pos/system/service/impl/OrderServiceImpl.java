@@ -9,9 +9,13 @@ import com.example.pos.system.mapper.OrderMapper;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.OrderDTO;
 import com.example.pos.system.repository.*;
+import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.OrderService;
 import com.example.pos.system.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
+import com.example.pos.system.modal.ShiftReport;
+import com.example.pos.system.repository.ShiftReportRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +36,9 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerRepository customerRepository;
     private final InventoryRepository inventoryRepository;
     private final PaymentRepository paymentRepository;
+    private final NotificationService notificationService;
     private final BranchRepository branchRepository;
+    private final ShiftReportRepository shiftReportRepository;
 
     /**
      * Check whether logged-in user has permission
@@ -117,6 +123,19 @@ public class OrderServiceImpl implements OrderService {
 
         checkBranchAccess(cashier, branch);
 
+
+        if (cashier.getRole() == UserRole.ROLE_BRANCH_CASHIER) {
+
+            boolean hasActiveShift = shiftReportRepository
+                    .findTopByCashierAndShiftEndIsNullOrderByShiftStartDesc(cashier)
+                    .isPresent();
+
+            if (!hasActiveShift) {
+                throw new UserException(
+                        "You must start your shift before creating an order."
+                );
+            }
+        }
 
 
         Customer customer = null;
@@ -213,6 +232,13 @@ public class OrderServiceImpl implements OrderService {
                             inventoryRepository.save(inventory);
 
 
+                            try {
+                                notificationService.checkAndNotifyLowStock(inventory);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+
+
 
 
 
@@ -289,7 +315,8 @@ public class OrderServiceImpl implements OrderService {
         if (user.getRole() == UserRole.ROLE_SUPER_ADMIN) {
             orders = orderRepository.findAll();
         }
-        else if (user.getRole() == UserRole.ROLE_STORE_ADMIN) {
+        else if (user.getRole() == UserRole.ROLE_STORE_ADMIN
+                || user.getRole() == UserRole.ROLE_ACCOUNTANT) {
 
             if (user.getStore() == null) {
                 throw new UserException("Store not assigned to user");
@@ -496,31 +523,20 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new Exception("Order not found"));
 
+        if (status == OrderStatus.RETURNED) {
+            throw new Exception(
+                    "Order cannot be marked as RETURNED directly. Please create and approve a refund instead."
+            );
+        }
+
         System.out.println("========== UPDATE ORDER ==========");
         System.out.println("Logged User : " + currentUser.getEmail());
         System.out.println("Role : " + currentUser.getRole());
+        System.out.println("User Branch : " +
+                (currentUser.getBranch()==null ? "NULL" : currentUser.getBranch().getId()));
+        System.out.println("Order Branch : " + order.getBranch().getId());
 
-        System.out.println(
-                "User Branch : " +
-                        (currentUser.getBranch()==null ?
-                                "NULL" :
-                                currentUser.getBranch().getId())
-        );
-
-        System.out.println(
-                "Order Branch : " +
-                        order.getBranch().getId()
-        );
-
-
-        if (currentUser.getRole() != UserRole.ROLE_SUPER_ADMIN) {
-
-            if (currentUser.getBranch() == null ||
-                    !currentUser.getBranch().getId().equals(order.getBranch().getId())) {
-
-                throw new Exception("Access Denied");
-            }
-        }
+        checkBranchAccess(currentUser, order.getBranch());
 
         order.setStatus(status);
 

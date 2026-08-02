@@ -6,6 +6,8 @@ public enum MovementType {
     PURCHASE,
     SALE,
     RETURN,
-    ADJUSTMENT
+    ADJUSTMENT,
+    TRANSFER_OUT,
+    TRANSFER_IN
 
 }

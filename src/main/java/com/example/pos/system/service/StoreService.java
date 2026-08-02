@@ -19,6 +19,8 @@ public interface StoreService {
 
     //List<StoreDTO> getAllStores();
 
+    List<UserDto> getStoreAdminsContact(Long storeId, User user) throws Exception;
+
     List<StoreDTO> getAllStores(User user) throws Exception;
 
     StoreDTO getStoreById(Long id, User user) throws Exception;

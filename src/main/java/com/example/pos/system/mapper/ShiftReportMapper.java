@@ -8,6 +8,7 @@ import com.example.pos.system.payload.dto.OrderDTO;
 import com.example.pos.system.payload.dto.ProductDTO;
 import com.example.pos.system.payload.dto.RefundDTO;
 import com.example.pos.system.payload.dto.ShiftReportDTO;
+import com.example.pos.system.mapper.BranchMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ public class ShiftReportMapper {
                 .cashier(UserMapper.toDTO(entity.getCashier()))
                 .cashierId(entity.getCashier().getId())
                 .branchId(entity.getBranch().getId())
+                .branch(BranchMapper.toDTO(entity.getBranch()))
                 .recentOrders(mapOrders(entity.getRecentOrders()))
                 .topSellingProducts(mapProducts(entity.getTopSellingProducts()))
                 .refunds(mapRefunds(entity.getRefunds()))

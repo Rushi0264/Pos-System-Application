@@ -21,5 +21,8 @@ public interface StockMovementService {
 
     List<StockMovementDTO> getByProduct(Long productId);
 
+    void transferStockToBranch(Long storeId, Long branchId, Long productId, Integer quantity) throws Exception;
+
+    Integer getStoreStock(Long storeId, Long productId) throws Exception;
 
 }

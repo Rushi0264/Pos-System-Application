@@ -3,12 +3,9 @@ package com.example.pos.system.service.impl;
 import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.BranchMapper;
-import com.example.pos.system.modal.Branch;
-import com.example.pos.system.modal.Store;
-import com.example.pos.system.modal.User;
+import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.BranchDTO;
-import com.example.pos.system.repository.BranchRepository;
-import com.example.pos.system.repository.StoreRepository;
+import com.example.pos.system.repository.*;
 import com.example.pos.system.service.BranchService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,25 +22,28 @@ public class BranchServiceImpl implements BranchService {
     private final BranchRepository branchRepository;
     private final StoreRepository storeRepository;
     private final UserService userService;
+    private final InventoryRepository inventoryRepository;
+    private final PurchaseRepository purchaseRepository;
+    private final UserRepository userRepository;
 
     @Override
     public BranchDTO createBranch(BranchDTO branchDTO) throws UserException {
 
         User currentUser = userService.getCurrentUser();
 
-        Store store = storeRepository.findById(branchDTO.getStoreId())
-                .orElseThrow(() ->
-                        new UserException("Store not found"));
+        if (currentUser.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            throw new UserException("Super Admin cannot create branches directly");
+        }
 
-        // Store isolation
+        Store store = storeRepository.findById(branchDTO.getStoreId())
+                .orElseThrow(() -> new UserException("Store not found"));
+
         if (currentUser.getStore() != null &&
                 !currentUser.getStore().getId().equals(store.getId())) {
-
             throw new UserException("You cannot create branch for another store");
         }
 
         Branch branch = BranchMapper.toEntity(branchDTO, store);
-
         Branch savedBranch = branchRepository.save(branch);
 
         return BranchMapper.toDTO(savedBranch);
@@ -83,14 +83,15 @@ public class BranchServiceImpl implements BranchService {
 
         User currentUser = userService.getCurrentUser();
 
-        Branch existing = branchRepository.findById(id)
-                .orElseThrow(() ->
-                        new Exception("Branch not found"));
+        if (currentUser.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            throw new UserException("Super Admin cannot edit branches directly");
+        }
 
-        // Branch belongs to logged-in store?
+        Branch existing = branchRepository.findById(id)
+                .orElseThrow(() -> new Exception("Branch not found"));
+
         if (currentUser.getStore() != null &&
                 !existing.getStore().getId().equals(currentUser.getStore().getId())) {
-
             throw new UserException("You cannot update another store's branch");
         }
 
@@ -115,6 +116,9 @@ public class BranchServiceImpl implements BranchService {
         existing.setEmail(branchDTO.getEmail());
         existing.setPhone(branchDTO.getPhone());
         existing.setAddress(branchDTO.getAddress());
+        existing.setCity(branchDTO.getCity());
+        existing.setState(branchDTO.getState());
+        existing.setPincode(branchDTO.getPincode());
         existing.setOpenTime(branchDTO.getOpenTime());
         existing.setCloseTime(branchDTO.getCloseTime());
         existing.setUpdatedAt(LocalDateTime.now());
@@ -126,9 +130,31 @@ public class BranchServiceImpl implements BranchService {
 
     @Override
     public void deleteBranch(Long id) throws Exception {
+
+        User currentUser = userService.getCurrentUser();
+
+        if (currentUser.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            throw new UserException("Super Admin cannot delete branches directly");
+        }
+
         Branch existing = branchRepository.findById(id).orElseThrow(
                 () -> new Exception("branch not found..")
         );
+
+        if (currentUser.getStore() != null &&
+                !existing.getStore().getId().equals(currentUser.getStore().getId())) {
+            throw new UserException("You cannot delete another store's branch");
+        }
+
+        List<Inventory> inventories = inventoryRepository.findByBranchId(id);
+        inventoryRepository.deleteAll(inventories);
+
+        List<Purchase> purchases = purchaseRepository.findByBranchId(id);
+        purchaseRepository.deleteAll(purchases);
+
+        List<User> users = userRepository.findByBranchId(id);
+        userRepository.deleteAll(users);
+
         branchRepository.delete(existing);
     }
 
@@ -179,7 +205,8 @@ public class BranchServiceImpl implements BranchService {
 
         if(user.getStore() != null
                 && user.getRole() != UserRole.ROLE_SUPER_ADMIN
-                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER) {
+                && user.getRole() != UserRole.ROLE_INVENTORY_MANAGER
+                && user.getRole() != UserRole.ROLE_ACCOUNTANT) {
 
             if(!user.getStore().getId().equals(storeId)) {
                 throw new UserException(

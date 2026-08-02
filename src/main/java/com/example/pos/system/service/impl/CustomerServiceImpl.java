@@ -10,7 +10,10 @@ import com.example.pos.system.repository.CustomerRepository;
 import com.example.pos.system.service.CustomerService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -74,7 +77,16 @@ public class CustomerServiceImpl implements CustomerService {
 
         checkAuthority(user, customer);
 
-        customerRepository.delete(customer);
+        try {
+            customerRepository.delete(customer);
+            customerRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot delete customer '" + customer.getFullName() +
+                            "' — related orders/payments/refunds exist for this customer."
+            );
+        }
     }
 
     @Override
@@ -149,11 +161,9 @@ public class CustomerServiceImpl implements CustomerService {
     private void checkAuthority(User user, Customer customer)
             throws UserException {
 
-
         if(user.getRole()==UserRole.ROLE_SUPER_ADMIN){
             return;
         }
-
 
         if(customer.getStore()==null ||
                 user.getStore()==null ||
@@ -164,12 +174,16 @@ public class CustomerServiceImpl implements CustomerService {
         }
 
 
-        if(customer.getBranch()==null ||
-                user.getBranch()==null ||
-                !customer.getBranch().getId()
-                        .equals(user.getBranch().getId())){
+        if(user.getRole() == UserRole.ROLE_BRANCH_MANAGER ||
+                user.getRole() == UserRole.ROLE_BRANCH_CASHIER){
 
-            throw new UserException("Branch Access Denied");
+            if(customer.getBranch()==null ||
+                    user.getBranch()==null ||
+                    !customer.getBranch().getId()
+                            .equals(user.getBranch().getId())){
+
+                throw new UserException("Branch Access Denied");
+            }
         }
 
     }
@@ -197,4 +211,6 @@ public class CustomerServiceImpl implements CustomerService {
                 "You don't have permission to create customer"
         );
     }
+
+
 }

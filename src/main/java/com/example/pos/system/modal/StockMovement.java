@@ -41,6 +41,10 @@ public class StockMovement {
 
 
 
+    @ManyToOne
+    private Store store;
+
+
     private String description;
 
 

@@ -60,4 +60,25 @@ public class DashboardController {
     public ResponseEntity<AccountantStatsDTO> getAccountantStats() {
         return ResponseEntity.ok(dashboardService.getAccountantStats());
     }
+
+
+    @GetMapping("/super-admin/recent-stores")
+    public ResponseEntity<List<StoreDTO>> getRecentStores() {
+        return ResponseEntity.ok(dashboardService.getRecentStores());
+    }
+
+    @GetMapping("/super-admin/store-growth")
+    public ResponseEntity<List<MonthlySalesDTO>> getStoreGrowth() {
+        return ResponseEntity.ok(dashboardService.getStoreGrowth());
+    }
+
+    @GetMapping("/super-admin/store-status")
+    public ResponseEntity<List<PaymentMethodDTO>> getStoreStatusBreakdown() {
+        return ResponseEntity.ok(dashboardService.getStoreStatusBreakdown());
+    }
+
+    @GetMapping("/recent-activity")
+    public ResponseEntity<List<ActivityDTO>> getRecentActivity() {
+        return ResponseEntity.ok(dashboardService.getRecentActivity());
+    }
 }

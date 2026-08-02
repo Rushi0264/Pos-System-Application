@@ -75,4 +75,13 @@ public class ShiftReportController {
         );
     }
 
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<List<ShiftReportDTO>> getShiftReportsByStore(
+            @PathVariable Long storeId
+    ) throws Exception {
+        return ResponseEntity.ok(
+                shiftReportService.getShiftReportsByStoreId(storeId)
+        );
+    }
+
 }
