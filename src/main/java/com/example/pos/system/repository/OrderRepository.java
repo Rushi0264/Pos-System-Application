@@ -88,4 +88,55 @@ GROUP BY o.paymentType
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.branch.id = :branchId AND o.createdAt BETWEEN :start AND :end")
     long countByBranchIdAndCreatedAtToday(@Param("branchId") Long branchId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    List<Order> findTop5ByBranch_Store_IdOrderByCreatedAtDesc(Long storeId);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.totalAmount), 0)
+    FROM Order o
+    WHERE o.branch.store.id = :storeId
+""")
+    Double getTotalRevenueByStore(@Param("storeId") Long storeId);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.totalAmount), 0)
+    FROM Order o
+    WHERE o.branch.store.id = :storeId AND o.createdAt BETWEEN :start AND :end
+""")
+    Double getTodayRevenueByStore(@Param("storeId") Long storeId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
+
+    @Query("""
+    SELECT o.paymentType, COUNT(o)
+    FROM Order o
+    WHERE o.branch.store.id = :storeId
+    GROUP BY o.paymentType
+""")
+    List<Object[]> getPaymentTypeBreakdownByStore(@Param("storeId") Long storeId);
+
+    List<Order> findByBranch_Store_IdAndCreatedAtBetween(Long storeId, LocalDateTime start, LocalDateTime end);
+
+    //List<Order> findTop5ByBranch_Store_IdOrderByCreatedAtDesc(Long storeId);
+
+    //@Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.branch.store.id = :storeId")
+    //Double getTotalRevenueByStore(@Param("storeId") Long storeId);
+
+    /*@Query("""
+    SELECT COALESCE(SUM(o.totalAmount), 0)
+    FROM Order o
+    WHERE o.branch.store.id = :storeId AND o.createdAt BETWEEN :start AND :end
+""")*/
+    //Double getTodayRevenueByStore(@Param("storeId") Long storeId,
+                                  //@Param("start") LocalDateTime start,
+                                  //@Param("end") LocalDateTime end);
+
+    /*@Query("""
+    SELECT o.paymentType, COUNT(o)
+    FROM Order o
+    WHERE o.branch.store.id = :storeId
+    GROUP BY o.paymentType
+""")*/
+    //List<Object[]> getPaymentTypeBreakdownByStore(@Param("storeId") Long storeId);
+
+// findByBranch_Store_Id(Long storeId)
 }

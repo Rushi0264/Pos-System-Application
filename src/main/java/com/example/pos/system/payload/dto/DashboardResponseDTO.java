@@ -18,6 +18,9 @@ public class DashboardResponseDTO {
 
     private Long totalEmployees;
 
+    private Long activeStores;
+    private Long pendingStores;
+
     private Long totalProducts;
 
     private Long totalCategories;

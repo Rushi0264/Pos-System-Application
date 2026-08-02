@@ -4,6 +4,7 @@ import com.example.pos.system.domain.StoreStatus;
 import com.example.pos.system.mapper.StoreMapper;
 import com.example.pos.system.modal.User;
 import com.example.pos.system.payload.dto.StoreDTO;
+import com.example.pos.system.payload.dto.UserDto;
 import com.example.pos.system.payload.response.ApiResponse;
 import com.example.pos.system.service.StoreService;
 import com.example.pos.system.service.UserService;
@@ -113,6 +114,19 @@ public class StoreController {
         );
     }
 
+    @GetMapping("/{id}/admin-contact")
+    public ResponseEntity<List<UserDto>> getStoreAdminsContact(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        User user = userService.getUserFromJwtToken(jwt);
+
+        return ResponseEntity.ok(
+                storeService.getStoreAdminsContact(id, user)
+        );
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteStore(
             @PathVariable Long id
@@ -125,4 +139,5 @@ public class StoreController {
 
         return ResponseEntity.ok(response);
     }
+
 }

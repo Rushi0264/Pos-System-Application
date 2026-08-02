@@ -12,6 +12,7 @@ import com.example.pos.system.repository.BranchRepository;
 import com.example.pos.system.repository.InventoryRepository;
 import com.example.pos.system.repository.ProductRepository;
 import com.example.pos.system.service.InventoryService;
+import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final BranchRepository branchRepository;
     private final ProductRepository productRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @Override
     public InventoryDTO createInventory(InventoryDTO dto) throws Exception {
@@ -77,7 +79,7 @@ public class InventoryServiceImpl implements InventoryService {
         Inventory savedInventory =
                 inventoryRepository.save(inventory);
 
-
+        notificationService.checkAndNotifyLowStock(savedInventory);
 
         return InventoryMapper.toDTO(savedInventory);
     }
@@ -94,9 +96,11 @@ public class InventoryServiceImpl implements InventoryService {
 
         inventory.setQuantity(dto.getQuantity());
 
-        return InventoryMapper.toDTO(
-                inventoryRepository.save(inventory)
-        );
+        Inventory updatedInventory = inventoryRepository.save(inventory);
+
+        notificationService.checkAndNotifyLowStock(updatedInventory);
+
+        return InventoryMapper.toDTO(updatedInventory);
     }
 
     @Override
@@ -228,7 +232,9 @@ public class InventoryServiceImpl implements InventoryService {
             inventory.setQuantity(inventory.getQuantity() + quantity);
             inventory.setLastUpdate(LocalDateTime.now());
 
-            inventoryRepository.save(inventory);
+            Inventory savedInventory = inventoryRepository.save(inventory);
+
+            notificationService.checkAndNotifyLowStock(savedInventory);
 
         } else {
 
@@ -245,7 +251,9 @@ public class InventoryServiceImpl implements InventoryService {
                     .lastUpdate(LocalDateTime.now())
                     .build();
 
-            inventoryRepository.save(newInventory);
+            Inventory savedInventory = inventoryRepository.save(newInventory);
+
+            notificationService.checkAndNotifyLowStock(savedInventory);
         }
     }
 

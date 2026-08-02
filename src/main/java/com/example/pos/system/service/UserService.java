@@ -3,6 +3,7 @@ package com.example.pos.system.service;
 import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.modal.User;
+
 import com.example.pos.system.payload.dto.UserDto;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public interface UserService {
 
     //List<User> getAllUser();
 
+    //StoreAdminContactDTO getStoreAdminContact(Long storeId) throws Exception;
     User createUser(UserDto userDto) throws UserException;
 
     User updateUser(Long id, UserDto userDto) throws Exception;

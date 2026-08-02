@@ -1,6 +1,7 @@
 package com.example.pos.system.payload.dto;
 
 
+import com.example.pos.system.domain.StoreStatus;
 import com.example.pos.system.domain.UserRole;
 
 import lombok.Data;
@@ -23,6 +24,7 @@ public class UserDto {
 
     private String email;
 
+    private StoreStatus storeStatus;
 
     private String password;
 

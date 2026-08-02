@@ -4,6 +4,7 @@ import com.example.pos.system.domain.UserRole;
 import com.example.pos.system.exception.UserException;
 import com.example.pos.system.mapper.UserMapper;
 import com.example.pos.system.modal.User;
+
 import com.example.pos.system.payload.dto.UserDto;
 import com.example.pos.system.payload.response.ApiResponse;
 import com.example.pos.system.payload.response.AuthResponse;
@@ -170,4 +171,5 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
 }

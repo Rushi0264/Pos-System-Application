@@ -6,27 +6,20 @@ import com.example.pos.system.payload.dto.UserDto;
 
 
 
+
 public class UserMapper {
 
-
+    //private com.example.pos.system.domain.StoreStatus storeStatus;
 
     public static UserDto toDTO(User user){
 
-
         UserDto dto=new UserDto();
 
-
         dto.setId(user.getId());
-
         dto.setFullName(user.getFullName());
-
         dto.setEmail(user.getEmail());
-
         dto.setPhone(user.getPhone());
-
         dto.setRole(user.getRole());
-
-
 
         if(user.getStore()!=null){
 
@@ -38,9 +31,11 @@ public class UserMapper {
                     user.getStore().getBrand()
             );
 
+            dto.setStoreStatus(
+                    user.getStore().getStatus()
+            );
+
         }
-
-
 
         if(user.getBranch()!=null){
 
@@ -52,12 +47,26 @@ public class UserMapper {
                     user.getBranch().getName()
             );
 
+            if(dto.getStoreStatus() == null
+                    && user.getBranch().getStore() != null){
+
+                dto.setStoreId(
+                        user.getBranch().getStore().getId()
+                );
+
+                dto.setStoreBrand(
+                        user.getBranch().getStore().getBrand()
+                );
+
+                dto.setStoreStatus(
+                        user.getBranch().getStore().getStatus()
+                );
+
+            }
+
         }
 
-
-
         return dto;
-
 
     }
 

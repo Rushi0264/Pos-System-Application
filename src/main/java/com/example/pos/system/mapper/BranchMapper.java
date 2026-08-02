@@ -13,6 +13,9 @@ public class BranchMapper {
                 .id(branch.getId())
                 .name(branch.getName())
                 .address(branch.getAddress())
+                .city(branch.getCity())
+                .state(branch.getState())
+                .pincode(branch.getPincode())
                 .phone(branch.getPhone())
                 .email(branch.getEmail())
                 .closeTime(branch.getCloseTime())
@@ -25,18 +28,21 @@ public class BranchMapper {
     }
 
     public static Branch toEntity(BranchDTO branchDTO, Store store){
-         return Branch.builder()
-                 .name(branchDTO.getName())
-                 .address(branchDTO.getAddress())
-                 .store(store)
-                 .email(branchDTO.getEmail())
-                 .phone(branchDTO.getPhone())
-                 .closeTime(branchDTO.getCloseTime())
-                 .openTime(branchDTO.getOpenTime())
-                 .workingDays(branchDTO.getWorkingDays())
-                 .createdAt(LocalDateTime.now())
-                 .updatedAt(LocalDateTime.now())
-                 .build();
+        return Branch.builder()
+                .name(branchDTO.getName())
+                .address(branchDTO.getAddress())
+                .city(branchDTO.getCity())
+                .state(branchDTO.getState())
+                .pincode(branchDTO.getPincode())
+                .store(store)
+                .email(branchDTO.getEmail())
+                .phone(branchDTO.getPhone())
+                .closeTime(branchDTO.getCloseTime())
+                .openTime(branchDTO.getOpenTime())
+                .workingDays(branchDTO.getWorkingDays())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
     }
 
 }

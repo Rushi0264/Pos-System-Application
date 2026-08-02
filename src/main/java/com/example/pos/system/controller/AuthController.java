@@ -1,6 +1,7 @@
 package com.example.pos.system.controller;
 
 import com.example.pos.system.exception.UserException;
+import com.example.pos.system.payload.dto.StoreRegistrationDTO;
 import com.example.pos.system.payload.dto.UserDto;
 import com.example.pos.system.payload.response.AuthResponse;
 import com.example.pos.system.service.AuthService;
@@ -30,6 +31,16 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 authService.signUp(userDto)
+        );
+    }
+
+    @PostMapping("/register-store")
+    public ResponseEntity<AuthResponse> registerStoreHandler(
+            @RequestBody StoreRegistrationDTO dto
+    ) throws UserException {
+
+        return ResponseEntity.ok(
+                authService.registerStore(dto)
         );
     }
 

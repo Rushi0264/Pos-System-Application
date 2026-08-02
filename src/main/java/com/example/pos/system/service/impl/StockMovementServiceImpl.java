@@ -6,6 +6,7 @@ import com.example.pos.system.exception.UserException;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.StockMovementDTO;
 import com.example.pos.system.repository.*;
+import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.StockMovementService;
 
 import com.example.pos.system.service.UserService;
@@ -31,6 +32,7 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     private final InventoryRepository inventoryRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @Override
     public StockMovementDTO createMovement(
@@ -258,7 +260,9 @@ public class StockMovementServiceImpl implements StockMovementService {
                     inventory.getQuantity() + quantity
             );
 
-            inventoryRepository.save(inventory);
+            Inventory savedInventory = inventoryRepository.save(inventory);
+
+            notificationService.checkAndNotifyLowStock(savedInventory);
 
         } else {
 
@@ -268,7 +272,9 @@ public class StockMovementServiceImpl implements StockMovementService {
                     .quantity(quantity)
                     .build();
 
-            inventoryRepository.save(newInventory);
+            Inventory savedInventory = inventoryRepository.save(newInventory);
+
+            notificationService.checkAndNotifyLowStock(savedInventory);
         }
     }
 

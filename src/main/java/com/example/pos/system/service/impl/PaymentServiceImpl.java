@@ -117,17 +117,43 @@ public class PaymentServiceImpl implements PaymentService {
 
 
     @Override
-    public List<PaymentDTO> getAllPayments()
-            throws Exception {
+    public List<PaymentDTO> getAllPayments() throws Exception {
 
+        User currentUser = userService.getCurrentUser();
 
-        return paymentRepository.findAll()
-                .stream()
-                .map(PaymentMapper::toDTO)
-                .toList();
-
+        if (currentUser.getRole() == UserRole.ROLE_SUPER_ADMIN) {
+            return paymentRepository.findAll().stream()
+                    .map(PaymentMapper::toDTO)
+                    .toList();
+        } else if (currentUser.getBranch() != null) {
+            return paymentRepository.findByOrder_Branch_Id(currentUser.getBranch().getId()).stream()
+                    .map(PaymentMapper::toDTO)
+                    .toList();
+        } else if (currentUser.getStore() != null) {
+            return paymentRepository.findByOrder_Branch_Store_Id(currentUser.getStore().getId()).stream()
+                    .map(PaymentMapper::toDTO)
+                    .toList();
+        } else {
+            return List.of();
+        }
     }
 
+    @Override
+    public List<PaymentDTO> getPaymentsByBranch(Long branchId) throws Exception {
+
+        User currentUser = userService.getCurrentUser();
+
+        if (currentUser.getRole() != UserRole.ROLE_SUPER_ADMIN) {
+            if (currentUser.getBranch() == null ||
+                    !currentUser.getBranch().getId().equals(branchId)) {
+                throw new UserException("You cannot access payments for this branch");
+            }
+        }
+
+        return paymentRepository.findByOrder_Branch_Id(branchId).stream()
+                .map(PaymentMapper::toDTO)
+                .toList();
+    }
 
 
     @Override

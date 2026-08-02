@@ -41,4 +41,6 @@ WHERE c.createdAt BETWEEN :start AND :end
     );
 
     long countByBranchId(Long branchId);
+
+    long countByBranchIdAndCreatedAtBetween(Long branchId, LocalDateTime start, LocalDateTime end);
 }

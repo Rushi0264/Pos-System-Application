@@ -9,9 +9,13 @@ import com.example.pos.system.mapper.OrderMapper;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.OrderDTO;
 import com.example.pos.system.repository.*;
+import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.OrderService;
 import com.example.pos.system.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
+import com.example.pos.system.modal.ShiftReport;
+import com.example.pos.system.repository.ShiftReportRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +36,9 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerRepository customerRepository;
     private final InventoryRepository inventoryRepository;
     private final PaymentRepository paymentRepository;
+    private final NotificationService notificationService;
     private final BranchRepository branchRepository;
+    private final ShiftReportRepository shiftReportRepository;
 
     /**
      * Check whether logged-in user has permission
@@ -117,6 +123,19 @@ public class OrderServiceImpl implements OrderService {
 
         checkBranchAccess(cashier, branch);
 
+
+        if (cashier.getRole() == UserRole.ROLE_BRANCH_CASHIER) {
+
+            boolean hasActiveShift = shiftReportRepository
+                    .findTopByCashierAndShiftEndIsNullOrderByShiftStartDesc(cashier)
+                    .isPresent();
+
+            if (!hasActiveShift) {
+                throw new UserException(
+                        "You must start your shift before creating an order."
+                );
+            }
+        }
 
 
         Customer customer = null;
@@ -211,6 +230,13 @@ public class OrderServiceImpl implements OrderService {
 
 
                             inventoryRepository.save(inventory);
+
+
+                            try {
+                                notificationService.checkAndNotifyLowStock(inventory);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
 
 
 
