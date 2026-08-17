@@ -7,4 +7,12 @@ public interface EmailService {
             String subject,
             String message
     );
+
+    void sendEmailWithAttachment(
+            String to,
+            String subject,
+            String message,
+            byte[] attachmentBytes,
+            String attachmentFileName
+    );
 }

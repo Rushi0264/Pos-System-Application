@@ -3,7 +3,9 @@ package com.example.pos.system.service.impl;
 
 import com.example.pos.system.modal.Order;
 import com.example.pos.system.modal.OrderItem;
+import com.example.pos.system.modal.Refund;
 import com.example.pos.system.repository.OrderRepository;
+import com.example.pos.system.repository.RefundRepository;
 import com.example.pos.system.service.InvoiceService;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
@@ -20,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 public class InvoiceServiceImpl implements InvoiceService {
 
     private final OrderRepository orderRepository;
+    private final RefundRepository refundRepository;   // <-- ADD
 
     @Override
     public byte[] generateInvoice(Long orderId) throws Exception {
@@ -51,7 +54,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         document.add(new Paragraph(" "));
 
-        // ================= ORDER INFO GRID (2 label-value pairs per row) =================
+        // ================= ORDER INFO GRID =================
 
         PdfPTable info = new PdfPTable(4);
         info.setWidthPercentage(100);
@@ -157,6 +160,164 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return out.toByteArray();
     }
+
+    // ================================================================
+    // ======================  REFUND RECEIPT  =======================
+    // ================================================================
+
+    @Override
+    public byte[] generateRefundReceipt(Long refundId) throws Exception {
+
+        Refund refund = refundRepository.findById(refundId)
+                .orElseThrow(() -> new Exception("Refund not found"));
+
+        Order order = refund.getOrder();
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Document document = new Document(PageSize.A4);
+        PdfWriter.getInstance(document, out);
+
+        document.open();
+
+        Font titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD);
+        Font labelFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.GRAY);
+        Font valueFont = new Font(Font.FontFamily.HELVETICA, 11, Font.NORMAL);
+        Font valueBoldFont = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD);
+        Font headerFont = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD);
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
+
+        // ================= HEADER =================
+
+        Paragraph title = new Paragraph("Refund Receipt #" + refund.getId(), titleFont);
+        title.setAlignment(Element.ALIGN_LEFT);
+        document.add(title);
+
+        document.add(new Paragraph(" "));
+
+        // ================= REFUND INFO GRID =================
+
+        PdfPTable info = new PdfPTable(4);
+        info.setWidthPercentage(100);
+        info.setWidths(new float[]{1.3f, 2f, 1.3f, 2f});
+        info.getDefaultCell().setBorderColor(BaseColor.LIGHT_GRAY);
+
+        addPair(info, labelFont, valueFont,
+                "Refund ID", String.valueOf(refund.getId()),
+                "Against Order", order != null ? ("ORD-" + order.getId()) : "-");
+
+        addPair(info, labelFont, valueFont,
+                "Status", refund.getStatus().name(),
+                "Payment Type", refund.getPaymentType() != null ? refund.getPaymentType().name() : "-");
+
+        addPair(info, labelFont, valueBoldFont,
+                "Refund Amount", "\u20B9" + String.format("%.2f", refund.getAmount()),
+                "Branch", refund.getBranch() != null ? refund.getBranch().getName() : "-");
+
+        addPair(info, labelFont, valueFont,
+                "Cashier",
+                refund.getCashier() != null
+                        ? (refund.getCashier().getFullName() != null
+                        ? refund.getCashier().getFullName()
+                        : refund.getCashier().getEmail())
+                        : "-",
+                "Approved By",
+                refund.getApprovedBy() != null
+                        ? (refund.getApprovedBy().getFullName() != null
+                        ? refund.getApprovedBy().getFullName()
+                        : refund.getApprovedBy().getEmail())
+                        : "-");
+
+        addPair(info, labelFont, valueFont,
+                "Customer",
+                order != null && order.getCustomer() != null ? order.getCustomer().getFullName() : "Walk-in",
+                "Customer Phone",
+                order != null && order.getCustomer() != null ? order.getCustomer().getPhone() : "-");
+
+        addPair(info, labelFont, valueFont,
+                "Requested At",
+                refund.getCreatedAt() != null ? refund.getCreatedAt().format(formatter) : "-",
+                "Approved At",
+                refund.getApprovedAt() != null ? refund.getApprovedAt().format(formatter) : "-");
+
+        document.add(info);
+
+        document.add(new Paragraph(" "));
+
+        // ================= REASON =================
+
+        Paragraph reasonLabel = new Paragraph("Reason for Refund", labelFont);
+        document.add(reasonLabel);
+        document.add(new Paragraph(
+                refund.getReason() != null && !refund.getReason().isBlank()
+                        ? refund.getReason() : "Not specified",
+                valueFont
+        ));
+
+        document.add(new Paragraph(" "));
+
+        // ================= ORIGINAL ITEMS (if available) =================
+
+        if (order != null && order.getItems() != null && !order.getItems().isEmpty()) {
+
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{4, 1.5f, 2, 2});
+
+            addHeader(table, "Product", headerFont);
+            addHeader(table, "Quantity", headerFont);
+            addHeader(table, "Price", headerFont);
+            addHeader(table, "Subtotal", headerFont);
+
+            for (OrderItem item : order.getItems()) {
+
+                table.addCell(new Phrase(item.getProduct().getName(), valueFont));
+                table.addCell(new Phrase(String.valueOf(item.getQuantity()), valueFont));
+                table.addCell(new Phrase("\u20B9" + String.format("%.0f", item.getPrice()), valueFont));
+                table.addCell(new Phrase(
+                        "\u20B9" + String.format("%.0f", item.getPrice() * item.getQuantity()),
+                        valueFont));
+            }
+
+            document.add(table);
+            document.add(new Paragraph(" "));
+        }
+
+        // ================= REFUND AMOUNT SUMMARY =================
+
+        PdfPTable summary = new PdfPTable(2);
+        summary.setWidthPercentage(45);
+        summary.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        summary.setWidths(new float[]{2, 2});
+
+        PdfPCell totalLabel = new PdfPCell(new Phrase("Refund Amount", headerFont));
+        PdfPCell totalValue = new PdfPCell(
+                new Phrase("\u20B9" + String.format("%.2f", refund.getAmount()), headerFont)
+        );
+
+        totalLabel.setPadding(6);
+        totalLabel.setBorderColor(BaseColor.LIGHT_GRAY);
+        totalLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        totalValue.setPadding(6);
+        totalValue.setBorderColor(BaseColor.LIGHT_GRAY);
+        totalValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
+
+        summary.addCell(totalLabel);
+        summary.addCell(totalValue);
+
+        document.add(summary);
+
+        document.close();
+
+        return out.toByteArray();
+    }
+
+    // ================================================================
+    // ==========================  HELPERS  ==========================
+    // ================================================================
 
     private void addSummaryRow(PdfPTable table, String label, String value,
                                Font labelFont, Font valueFont) {

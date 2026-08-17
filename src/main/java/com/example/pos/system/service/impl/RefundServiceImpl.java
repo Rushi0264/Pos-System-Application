@@ -12,10 +12,12 @@ import com.example.pos.system.repository.InventoryRepository;
 import com.example.pos.system.repository.OrderRepository;
 import com.example.pos.system.repository.PaymentRepository;
 import com.example.pos.system.repository.RefundRepository;
+import com.example.pos.system.repository.ShiftReportRepository;
+import com.example.pos.system.service.EmailService;
+import com.example.pos.system.service.InvoiceService;
 import com.example.pos.system.service.NotificationService;
 import com.example.pos.system.service.RefundService;
 import com.example.pos.system.service.UserService;
-import com.example.pos.system.repository.ShiftReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,9 @@ public class RefundServiceImpl implements RefundService {
     private final NotificationService notificationService;
     private final OrderRepository orderRepository;
     private final ShiftReportRepository shiftReportRepository;
+    private final EmailService emailService;
+    private final InvoiceService invoiceService;
+
 
 
     @Override
@@ -250,6 +255,36 @@ public class RefundServiceImpl implements RefundService {
 
                 shiftReportRepository.save(shiftReport);
             }
+
+            // ===== EMAIL: refund approved/processed (with PDF receipt) =====
+            Customer refundCustomer = order.getCustomer();
+
+            if (refundCustomer != null
+                    && refundCustomer.getEmail() != null
+                    && !refundCustomer.getEmail().isBlank()) {
+
+                String customerName = refundCustomer.getFullName() != null
+                        ? refundCustomer.getFullName() : "Customer";
+
+                String subject = "Refund Processed for Order #" + order.getId();
+                String body = "Hi " + customerName + ",\n\n"
+                        + "Your refund for order #" + order.getId() + " has been approved and processed.\n"
+                        + "Refund Amount: \u20B9" + refund.getAmount() + "\n\n"
+                        + "Please find your refund receipt attached.\n\n"
+                        + "The amount will reflect as per your original payment method's timelines.\n\n"
+                        + "— NexoraPOS";
+
+                byte[] refundReceiptPdf = invoiceService.generateRefundReceipt(refund.getId());
+
+                emailService.sendEmailWithAttachment(
+                        refundCustomer.getEmail(),
+                        subject,
+                        body,
+                        refundReceiptPdf,
+                        "Refund_Receipt_" + refund.getId() + ".pdf"
+                );
+            }
+            // ================================================
 
         }
 
