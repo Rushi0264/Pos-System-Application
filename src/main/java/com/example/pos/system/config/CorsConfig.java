@@ -1,3 +1,4 @@
+/*
 package com.example.pos.system.config;
 
 import org.springframework.context.annotation.Configuration;
@@ -28,4 +29,4 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
-}
+}*/

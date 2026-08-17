@@ -732,11 +732,13 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList(
+        configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:5173",
                 "http://localhost:5174",
+                "http://localhost:5175",
                 "http://localhost:3000",
-                "https://pos-system-application-ui.vercel.app"
+                "https://pos-system-application-ui.vercel.app",
+                "https://pos-system-application-*-rushi22.vercel.app"
         ));
 
         configuration.setAllowedMethods(Arrays.asList(
