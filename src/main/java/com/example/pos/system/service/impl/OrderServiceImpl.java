@@ -9,12 +9,7 @@ import com.example.pos.system.mapper.OrderMapper;
 import com.example.pos.system.modal.*;
 import com.example.pos.system.payload.dto.OrderDTO;
 import com.example.pos.system.repository.*;
-import com.example.pos.system.service.NotificationService;
-import com.example.pos.system.service.OrderService;
-import com.example.pos.system.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
-import com.example.pos.system.modal.ShiftReport;
-import com.example.pos.system.repository.ShiftReportRepository;
+import com.example.pos.system.service.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +34,8 @@ public class OrderServiceImpl implements OrderService {
     private final NotificationService notificationService;
     private final BranchRepository branchRepository;
     private final ShiftReportRepository shiftReportRepository;
+    private final EmailService emailService;
+    private final InvoiceService invoiceService;
 
     /**
      * Check whether logged-in user has permission
@@ -85,9 +82,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO createOrder(OrderDTO orderDTO) throws Exception {
 
-
-
-
         User cashier = userService.getCurrentUser();
 
         Branch branch;
@@ -107,8 +101,6 @@ public class OrderServiceImpl implements OrderService {
             branch = cashier.getBranch();
 
         }
-
-        //User cashier = userService.getCurrentUser();
 
         System.out.println("USER : " + cashier.getEmail());
         System.out.println("ROLE : " + cashier.getRole());
@@ -158,7 +150,6 @@ public class OrderServiceImpl implements OrderService {
                 .cashier(cashier)
                 .customer(customer)
                 .paymentType(orderDTO.getPaymentType())
-                //.paymentStatus(PaymentStatus.PENDING)
                 .status(OrderStatus.CREATED)
                 .build();
 
@@ -286,8 +277,6 @@ public class OrderServiceImpl implements OrderService {
 
         order.setItems(orderItems);
 
-        //order.setTotalAmount(totalAmount);
-
 
 
         Order savedOrder =
@@ -297,7 +286,7 @@ public class OrderServiceImpl implements OrderService {
                 .order(savedOrder)
                 .amount(total)
                 .paymentType(orderDTO.getPaymentType())
-                .status(PaymentStatus.SUCCESS) // किंवा PENDING, तुझ्या business logic नुसार
+                .status(PaymentStatus.SUCCESS)
                 .build();
 
         paymentRepository.save(payment);
@@ -368,7 +357,6 @@ public class OrderServiceImpl implements OrderService {
             OrderStatus status
     ) throws Exception {
 
-        //User currentUser = userService.getCurrentUser();
         User currentUser = userService.getCurrentUser();
 
         System.out.println("========== ORDER ACCESS ==========");
@@ -378,7 +366,6 @@ public class OrderServiceImpl implements OrderService {
         System.out.println("Requested Branch: " + branchId);
         System.out.println("==================================");
 
-        // Super Admin -> Access all branches
         if (currentUser.getRole() != UserRole.ROLE_SUPER_ADMIN) {
 
             if (currentUser.getBranch() == null ||
@@ -541,6 +528,35 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(status);
 
         Order savedOrder = orderRepository.save(order);
+
+        // ===== EMAIL: order completed (with PDF invoice) =====
+        if (status == OrderStatus.COMPLETED
+                && savedOrder.getCustomer() != null
+                && savedOrder.getCustomer().getEmail() != null
+                && !savedOrder.getCustomer().getEmail().isBlank()) {
+
+            String customerName = savedOrder.getCustomer().getFullName() != null
+                    ? savedOrder.getCustomer().getFullName() : "Customer";
+
+            String subject = "Your NexoraPOS Order #" + savedOrder.getId() + " is Confirmed";
+            String body = "Hi " + customerName + ",\n\n"
+                    + "Thank you for your purchase! Your order #" + savedOrder.getId() + " has been completed.\n"
+                    + "Total Amount: \u20B9" + savedOrder.getTotalAmount() + "\n\n"
+                    + "Please find your invoice attached.\n\n"
+                    + "We appreciate your business.\n\n"
+                    + "— NexoraPOS";
+
+            byte[] invoicePdf = invoiceService.generateInvoice(savedOrder.getId());
+
+            emailService.sendEmailWithAttachment(
+                    savedOrder.getCustomer().getEmail(),
+                    subject,
+                    body,
+                    invoicePdf,
+                    "Invoice_Order_" + savedOrder.getId() + ".pdf"
+            );
+        }
+        // ===================================
 
         return OrderMapper.toDTO(savedOrder);
     }
