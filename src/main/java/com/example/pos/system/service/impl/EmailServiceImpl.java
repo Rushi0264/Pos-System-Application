@@ -24,18 +24,14 @@ public class EmailServiceImpl implements EmailService {
             String subject,
             String message) {
 
-        try {
-            SimpleMailMessage mailMessage = new SimpleMailMessage();
-            mailMessage.setTo(to);
-            mailMessage.setSubject(subject);
-            mailMessage.setText(message);
+        SimpleMailMessage mailMessage =
+                new SimpleMailMessage();
 
-            mailSender.send(mailMessage);
-            log.info("Email sent successfully to {} — subject: {}", to, subject);
+        mailMessage.setTo(to);
+        mailMessage.setSubject(subject);
+        mailMessage.setText(message);
 
-        } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
-        }
+        mailSender.send(mailMessage);
     }
 
     @Override
